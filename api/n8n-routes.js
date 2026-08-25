@@ -47,6 +47,14 @@ function normalizeSpec(body) {
   return normalized;
 }
 
+function databaseErrorResponse(error) {
+  const unavailableCodes = new Set(["ECONNREFUSED", "ENOTFOUND", "ETIMEDOUT", "28P01", "3D000"]);
+  if (unavailableCodes.has(error.code)) {
+    return { status: 503, message: "Banco de dados indisponível ou não configurado." };
+  }
+  return { status: 500, message: "Não foi possível concluir a operação no banco de dados." };
+}
+
 function registerN8nRoutes(app) {
   app.get("/api/orcamentos", async (req, res) => {
     try {
@@ -80,8 +88,9 @@ function registerN8nRoutes(app) {
       );
       res.json({ orcamentos: result.rows });
     } catch (error) {
-      console.error("GET /api/orcamentos error", error);
-      res.status(500).json({ error: "Não foi possível listar os orçamentos." });
+      console.error("GET /api/orcamentos error", error.code || error.message);
+      const response = databaseErrorResponse(error);
+      res.status(response.status).json({ error: response.message });
     }
   });
 
@@ -100,14 +109,16 @@ function registerN8nRoutes(app) {
       );
       res.json({ data: date || new Date().toISOString().slice(0, 10), kpis: result.rows[0] });
     } catch (error) {
-      console.error("GET /api/relatorios/dia error", error);
-      res.status(500).json({ error: "Não foi possível gerar o relatório diário." });
+      console.error("GET /api/relatorios/dia error", error.code || error.message);
+      const response = databaseErrorResponse(error);
+      res.status(response.status).json({ error: response.message });
     }
   });
 
   app.post("/api/cutlists", async (req, res) => {
-    const client = await pool.connect();
+    let client;
     try {
+      client = await pool.connect();
       const spec = normalizeSpec(req.body || {});
       const parts = generateParts(spec);
       await client.query("BEGIN");
@@ -160,11 +171,16 @@ function registerN8nRoutes(app) {
       await client.query("COMMIT");
       res.status(201).json({ ok: true, modulo, cutlist, pecas: persistedParts });
     } catch (error) {
-      await client.query("ROLLBACK").catch(() => {});
-      console.error("POST /api/cutlists error", error);
-      res.status(error.statusCode || 500).json({ error: error.statusCode ? error.message : "Não foi possível salvar o cutlist." });
+      if (client) await client.query("ROLLBACK").catch(() => {});
+      console.error("POST /api/cutlists error", error.code || error.message);
+      if (error.statusCode) {
+        res.status(error.statusCode).json({ error: error.message });
+      } else {
+        const response = databaseErrorResponse(error);
+        res.status(response.status).json({ error: response.message });
+      }
     } finally {
-      client.release();
+      if (client) client.release();
     }
   });
 }
