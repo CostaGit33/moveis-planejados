@@ -1,15 +1,13 @@
 {
-  "name": "moveis-planejados",
+  "name": "moveis-api",
   "version": "0.1.0",
-  "private": true,
-  "description": "MVP local para projeto e orcamento de moveis planejados.",
+  "description": "API for moveis-planejados - lightweight server to generate BOMs and enqueue jobs",
+  "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "check": "node --check server.js && node --check public/app.js",
-    "gerar:poc": "python gerar_poc.py"
+    "start": "node server.js"
   },
   "dependencies": {
-    "dotenv": "^17.4.2",
-    "pg": "^8.23.0"
+    "dotenv": "^16.0.0",
+    "express": "^4.18.2"
   }
 }
