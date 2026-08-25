@@ -1,0 +1,5 @@
+/* Dashboard.css */
+.kpi-cards { display:flex; gap:12px; }
+.kpi { background:linear-gradient(180deg,#fff,#f7f9fc); padding:16px; border-radius:10px; border:1px solid #e6eef8; min-width:150px; }
+.kpi h3 { margin:0 0 8px 0; font-size:14px; color:#33475b }
+.kpi .value { font-weight:700; font-size:18px }

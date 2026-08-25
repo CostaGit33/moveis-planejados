@@ -1,0 +1,6 @@
+id,nome,material,largura,profundidade,altura,unidade
+MOD-001-LAT-E,Lateral esquerda,mdf_areia,18,600,720,mm
+MOD-001-LAT-D,Lateral direita,mdf_areia,18,600,720,mm
+MOD-001-BASE,Base,mdf_areia,600,600,18,mm
+MOD-001-TOPO,Topo,mdf_areia,600,600,18,mm
+MOD-001-FUNDO,Fundo,mdf_areia,600,18,720,mm

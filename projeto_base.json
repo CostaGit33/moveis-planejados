@@ -1,0 +1,53 @@
+{
+  "unidade": "mm",
+  "ambiente": {
+    "nome": "POC cozinha linear",
+    "largura": 3200,
+    "profundidade": 800,
+    "pe_direito": 2700
+  },
+  "paredes": [
+    {
+      "id": "PAREDE-001",
+      "nome": "Parede principal",
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "largura": 3200,
+      "espessura": 120,
+      "altura": 2700,
+      "material": "alvenaria_branca"
+    }
+  ],
+  "modulos": [
+    {
+      "id": "MOD-001",
+      "tipo": "armario_inferior",
+      "nome": "Armario inferior 600",
+      "x": 300,
+      "y": 120,
+      "z": 0,
+      "largura": 600,
+      "profundidade": 600,
+      "altura": 720,
+      "espessura_chapa": 18,
+      "material": "mdf_areia",
+      "portas": 2,
+      "gavetas": 0
+    }
+  ],
+  "materiais": {
+    "alvenaria_branca": {
+      "nome": "Alvenaria branca",
+      "cor_rgb": [0.92, 0.92, 0.88]
+    },
+    "mdf_areia": {
+      "nome": "MDF Areia",
+      "cor_rgb": [0.72, 0.58, 0.42]
+    },
+    "linha_corte": {
+      "nome": "Linha de corte",
+      "cor_rgb": [0.08, 0.08, 0.08]
+    }
+  }
+}

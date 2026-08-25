@@ -1,0 +1,685 @@
+# 🚀 Arquitetura Avançada — Sistema de Orçamentos com IA + Automação
+
+## 📦 Overview Completo
+
+Você tem um **sistema inteligente, totalmente automatizado** que:
+
+```
+👥 USUÁRIO (Telegram) 
+    ↓
+🤖 AGENT IA (Claude 3.5 Sonnet)
+    ↓
+🔧 N8N (Orquestração de Workflows)
+    ↓
+💾 API Node.js/PostgreSQL
+    ↓
+📊 Dashboard React + Insights
+
+```
+
+---
+
+## 🎯 Componentes Principais
+
+### 1️⃣ **Agent IA** (`agent-ia.js`)
+
+**O que faz:** Processa linguagem natural e executa ações automáticas
+
+**Ferramentas disponíveis:**
+
+- `criar_cliente` — Cadastra novo cliente
+- `criar_orcamento` — Cria orçamento com cálculos automáticos
+- `listar_clientes` — Busca clientes com filtro
+- `obter_orcamento` — Retorna orçamento + itens
+- `listar_orcamentos` — Lista com filtro (status, cliente)
+- `atualizar_orcamento` — Muda status/desconto
+- `analisar_cliente` — Gera insights de cliente
+- `gerar_relatorio` — Cria relatórios (faturamento, conversão, etc)
+
+**Fluxo de execução:**
+
+```
+Mensagem do usuário
+    ↓
+Claude API (system prompt especializado)
+    ↓
+Identifica qual ferramenta chamar
+    ↓
+Executa ferramenta (query DB)
+    ↓
+Processa resultado
+    ↓
+Gera resposta natural + insight
+
+```
+
+**Exemplo de conversa:**
+
+```
+Usuário: "Quero um orçamento para João Silva com 2 portas de alumínio"
+
+Agent:
+1. Detecta: criar_orcamento + criar_cliente
+2. Busca/cria cliente João Silva
+3. Cria orçamento com itens
+4. Calcula totais automaticamente
+5. Responde: "✅ Orçamento PROP-001-2026 criado! Total: R$ 3.400,00"
+
+```
+
+---
+
+### 2️⃣ **Bot Telegram** (`telegram-bot.js`)
+
+**O que faz:** Interface conversacional para usuário final
+
+**Recursos:**
+
+- `/start` — Menu inicial
+- `/menu` — Dashboard interativo (botões)
+- `/help` — Como usar
+- Conversas livres em linguagem natural
+- Callbacks para ações (buttons)
+- Notificações automáticas
+
+**Fluxo:**
+
+```
+Usuário digita no Telegram
+    ↓
+Bot recebe mensagem
+    ↓
+Passa para Agent IA
+    ↓
+Agent processa com ferramentas
+    ↓
+Bot envia resposta formatada
+    ↓
+Se houver webhook, notifica
+
+```
+
+**Exemplo de Menu:**
+
+```
+📋 Menu Principal
+[➕ Novo Orçamento] [📊 Listar] [👥 Clientes] [📈 Relatórios]
+
+```
+
+---
+
+### 3️⃣ **Workflows n8n** (`n8n-workflows.json`)
+
+**5 Workflows principais:**
+
+#### A) **Bookipi Scraper** 🔄
+
+**Trigger:** Cron diariamente às 22:00
+**Ação:** Extrai orçamentos do Bookipi, processa com Claude, sincroniza com API
+
+```
+22:00 → Puppeteer login Bookipi
+     → Navega para orçamentos
+     → Extrai tabela com Cheerio
+     → Claude processa dados (OCR + estruturação)
+     → POST para seu banco
+     → Telegram notifica admin
+
+```
+
+#### B) **Notificar Cliente** 💬
+
+**Trigger:** Webhook (quando orçamento criado)
+**Ação:** Envia mensagem Telegram personalizada
+
+```
+Orçamento criado (POST /webhook/orcamento-criado)
+     → Claude gera mensagem personalizada
+     → Telegram envia pro cliente
+     → Log em DB
+
+```
+
+#### C) **Follow-up Automático** 📬
+
+**Trigger:** Cron diariamente às 09:00
+**Ação:** Envia lembrança para orçamentos pendentes >7 dias
+
+```
+09:00 → GET /api/orcamentos?status=enviado
+     → Filtra por data (7+ dias)
+     → Claude gera follow-up persuasivo
+     → Envia para cada cliente via Telegram
+     → Admin recebe notificação
+
+```
+
+#### D) **Relatório Diário** 📊
+
+**Trigger:** Cron diariamente às 18:00
+**Ação:** Calcula KPIs e envia para admin
+
+```
+18:00 → GET dados do dia
+     → Calcula: total, aprovados, faturado, taxa conversão
+     → Formata mensagem elegante
+     → Envia via Telegram
+
+```
+
+#### E) **Detecção de Anomalias** 🚨
+
+**Trigger:** Cron a cada 2 horas
+**Ação:** Claude analisa padrões anormais
+
+```
+A cada 2h → GET últimos 50 orçamentos
+         → Claude analisa anomalias
+         → Se houver: alerta admin via Telegram
+         → Identifica: valores outlier, taxa conversão anormal, etc
+
+```
+
+#### F) **Export Excel Mensal** 📥
+
+**Trigger:** Cron último dia do mês às 23:00
+**Ação:** Cria relatório em Excel e envia por email
+
+```
+Último dia às 23:00 → GET todos os orçamentos do mês
+                   → Gera planilha com dados + resumo
+                   → Email para admin
+
+```
+
+---
+
+### 4️⃣ **API Node.js** (`server.js`)
+
+**Endpoints core:**
+
+| Método Rota Descrição  |                                      |                  |
+| ---------------------- | ------------------------------------ | ---------------- |
+| GET                    | `/api/clientes`                      | Lista clientes   |
+| POST                   | `/api/clientes`                      | Cria cliente     |
+| GET                    | `/api/orcamentos`                    | Lista orçamentos |
+| POST                   | `/api/orcamentos`                    | Cria orçamento   |
+| GET                    | `/api/orcamentos/:id`                | Obter completo   |
+| PUT                    | `/api/orcamentos/:id`                | Atualizar        |
+| POST                   | `/api/orcamentos/:id/itens`          | Adicionar item   |
+| DELETE                 | `/api/orcamentos/:id/itens/:item_id` | Remover item     |
+
+**Especial:** Webhook para notificações
+
+```
+POST /webhook/orcamento-criado → n8n processa
+
+```
+
+---
+
+### 5️⃣ **Dashboard React** (`Dashboard.jsx`)
+
+**Visualizações:**
+
+1. **KPIs (Cards animados)**
+   - 💰 Faturado (vs período anterior)
+   - ⏱️ Pendente (aprovados não finalizados)
+   - 📈 Taxa Conversão
+   - 🎯 Ticket Médio
+2. **Gráficos**
+   - Status bar (rascunho, enviado, aprovado, etc)
+   - Top 5 clientes
+3. **Recomendações IA**
+   - Taxa baixa? Sugerir follow-up
+   - Taxa alta? Parabenizar
+   - Cliente importante? Oferecer desconto
+   - Muitas rejeições? Revisar preço
+   - etc
+4. **Tabela de Recentes**
+   - Últimos 10 orçamentos
+   - Proposta, Cliente, Data, Valor, Status
+
+---
+
+## 🔄 Fluxo Completo (Exemplo Real)
+
+### Cenário: Cliente Novo → Orçamento → Aprovação → Finalização
+
+```
+1️⃣ SEGUNDA (9:00 AM)
+   Usuário (Telegram): "Novo cliente: João Silva quer 2 portas (R$1700 cada)"
+   └→ Agent cria cliente + orçamento PROP-001-2026
+   └→ Bot responde: "✅ Orçamento criado! R$ 3.400,00"
+   └→ n8n webhook envia notificação pra João (Telegram)
+   └→ Dashboard atualiza em tempo real
+
+2️⃣ SEGUNDA (18:00)
+   Relatório diário é enviado:
+   "📊 Hoje: 5 orçamentos, 1 aprovado, faturado R$ 3.400"
+
+3️⃣ TERÇA (9:00)
+   (Nada acontece - orçamento aprovado há pouco)
+
+4️⃣ SEGUNDA SEGUINTE (9:00)
+   Orçamento está há 7 dias sem resposta
+   └→ n8n dispara follow-up automático
+   └→ João recebe: "João, sua proposta PROP-001 está pronta! Aprove agora."
+   └→ Admin recebe notificação
+
+5️⃣ TERÇA (14:30)
+   João aprova via Telegram: "Tá bom, aprova meu orçamento"
+   └→ Agent detecta aprovação
+   └→ Atualiza status para "aprovado"
+   └→ Dashboard mostra R$ 3.400 em "Pendente"
+
+6️⃣ TERÇA (18:00)
+   Relatório: "Taxa conversão: 100%! Ticket médio: R$ 3.400"
+
+7️⃣ QUARTA (10:00)
+   João paga metade (R$ 1.700)
+   └→ Usuário marca como "finalizado"
+   └→ Dashboard move R$ 3.400 de "Pendente" para "Faturado"
+   └→ Anomalia? Não (valor esperado)
+
+8️⃣ MÊS SEGUINTE (30º dia)
+   └→ n8n gera Excel com todos orçamentos do mês
+   └→ Email para admin
+
+```
+
+---
+
+## 🛠️ Setup Completo (Passo a Passo)
+
+### Pré-requisitos:
+
+- Node.js 16+
+- PostgreSQL
+- Conta n8n (self-hosted ou cloud)
+- Conta Telegram Bot (@BotFather)
+- API Key Anthropic (Claude)
+
+### 1️⃣ Backend + DB
+
+```bash
+# Criar pasta
+mkdir orcamentos-ia && cd orcamentos-ia
+
+# Clone schema
+psql -U postgres -d orcamentos_moveis -f orcamento_moveis_schema.sql
+
+# Instalar dependências
+npm init -y
+npm install express pg cors body-parser dotenv telegraf @anthropic-ai/sdk
+
+# Copiar arquivos
+cp server.js agent-ia.js telegram-bot.js .
+
+# Criar .env
+cat > .env << EOF
+DB_USER=seu_user
+DB_PASSWORD=sua_senha
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=orcamentos_moveis
+
+TELEGRAM_BOT_TOKEN=seu_token
+TELEGRAM_ADMIN_ID=seu_id
+ANTHROPIC_API_KEY=sua_key
+API_URL=http://localhost:3000
+
+BOOKIPI_USER=seu_email
+BOOKIPI_PASSWORD=sua_senha
+EOF
+
+# Iniciar
+npm install -g nodemon
+npm start
+
+```
+
+### 2️⃣ n8n Setup
+
+```bash
+# Instalar n8n
+npm install -g n8n
+
+# Iniciar
+n8n
+
+# Abrir http://localhost:5678
+# Importar workflows de n8n-workflows.json
+# Configurar credenciais (Anthropic, Telegram, etc)
+
+```
+
+### 3️⃣ Frontend
+
+```bash
+cd ..
+npx create-react-app orcamentos-web
+cd orcamentos-web
+
+# Copiar
+cp ../OrcamentosApp.jsx src/
+cp ../Dashboard.jsx src/
+cp ../OrcamentosApp.css src/
+cp ../Dashboard.css src/
+
+# Editar App.js
+cat > src/App.js << EOF
+import { useState } from 'react';
+import OrcamentosApp from './OrcamentosApp';
+import Dashboard from './Dashboard';
+
+function App() {
+  const [view, setView] = useState('app'); // app ou dashboard
+
+  return (
+    <>
+      {view === 'app' ? (
+        <>
+          <OrcamentosApp />
+          <button onClick={() => setView('dashboard')}>Ver Dashboard</button>
+        </>
+      ) : (
+        <>
+          <Dashboard />
+          <button onClick={() => setView('app')}>Voltar</button>
+        </>
+      )}
+    </>
+  );
+}
+
+export default App;
+EOF
+
+# .env.local
+echo "REACT_APP_API_URL=http://localhost:3000" > .env.local
+
+# Iniciar
+npm start
+
+```
+
+---
+
+## 🚀 Scenarios de Automação
+
+### **Scenario 1: Novo Cliente (Automático)**
+
+```
+Telegram: "Novo: Maria Silva, (77) 99999-9999, endereco rua 123"
+   ↓
+Agent detecta "novo cliente"
+   ↓
+Cria: INSERT INTO clientes (nome, telefone, endereco) VALUES (...)
+   ↓
+Resposta: "✅ Maria Silva cadastrada! Pronto para criar orçamento?"
+
+```
+
+### **Scenario 2: Orçamento Inteligente**
+
+```
+Telegram: "Maria quer 3 portas (1700 cada), 2 kit espelho (500 cada), desconta 10%"
+   ↓
+Agent identifica:
+- Cliente: Maria
+- Itens: 3 portas, 2 kits
+- Desconto: 10%
+   ↓
+Calcula:
+- Subtotal: (1700*3) + (500*2) = 6.100
+- Desconto: 610
+- Total: 5.490
+   ↓
+Cria orçamento + notifica cliente
+
+```
+
+### **Scenario 3: Análise de Cliente**
+
+```
+Telegram: "Analisa João"
+   ↓
+Agent executa: analisar_cliente(cliente_id=1)
+   ↓
+Busca histórico: 8 orçamentos, 5 aprovados, R$ 15.000 faturado
+   ↓
+Calcula: taxa conversão 62,5%, cliente premium
+   ↓
+Resposta:
+"👤 JOÃO SILVA
+📊 8 orçamentos | 5 aprovados (62,5%)
+💰 Faturado: R$ 15.000 | Pendente: R$ 2.500
+🌟 Cliente premium! Considere oferecer pacote especial."
+
+```
+
+### **Scenario 4: Relatório com IA**
+
+```
+Telegram: "Qual foi meu faturamento nos últimos 30 dias?"
+   ↓
+Agent: gerar_relatorio(tipo=faturamento, periodo=30)
+   ↓
+Query: SELECT SUM(valor_total) FROM orcamentos WHERE status='finalizado' AND data > 30 dias atrás
+   ↓
+Resultado: R$ 45.320,50
+   ↓
+Resposta:
+"💰 FATURAMENTO - ÚLTIMOS 30 DIAS
+Total: R$ 45.320,50
+Orçamentos: 12
+Ticket Médio: R$ 3.776,71
+📈 Crescimento: +23% vs mês anterior"
+
+```
+
+---
+
+## 📊 Métricas & KPIs
+
+### Calculados em Tempo Real:
+
+| KPI Fórmula Ação           |                                           |                     |
+| -------------------------- | ----------------------------------------- | ------------------- |
+| **Faturado**               | SUM(valor\_total) WHERE status=finalizado | 💰 Revenue tracking |
+| **Pendente**               | SUM(valor\_total) WHERE status=aprovado   | ⏱️ Cash flow        |
+| **Taxa Conversão**         | (aprovados+finalizados) / total \* 100    | 📈 Performance      |
+| **Ticket Médio**           | faturado / finalizados                    | 🎯 AOV              |
+| **Taxa Rejeição**          | rejeitados / total \* 100                 | ⚠️ Preço?           |
+| **Cliente Lifetime Value** | SUM(valor) por cliente                    | ⭐ Segmentação       |
+
+### Recomendações Automáticas:
+
+- ✅ Taxa >70% → "Mantenha esse padrão!"
+- 🔴 Taxa <30% → "Revise follow-up"
+- ⭐ Cliente >10K → "Ofereça desconto"
+- 📈 Pendente >50% → "Priorize conversão"
+- ⚠️ Rejeição >20% → "Revise preços"
+
+---
+
+## 🔐 Segurança
+
+### Implementar:
+
+```bash
+npm install joi jsonwebtoken bcryptjs helmet express-rate-limit
+
+```
+
+**No código:**
+
+```javascript
+// Validação (joi)
+const schema = joi.object({
+  nome: joi.string().min(3).required(),
+  email: joi.string().email().required(),
+});
+
+// Auth (JWT)
+const token = jwt.sign({ userId: 123 }, process.env.JWT_SECRET);
+
+// Hash (bcryptjs)
+const hash = bcrypt.hashSync(password, 10);
+
+// Security headers (helmet)
+app.use(helmet());
+
+// Rate limiting
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
+
+```
+
+---
+
+## 🌐 Deploy Recomendado
+
+### Backend (Node.js)
+
+- **Railway** — R$7/mês (PostgreSQL grátis 1 mês)
+- **Render** — Grátis com créditos
+- **Easypanel** — Docker próprio
+
+### Frontend (React)
+
+- **Vercel** — Grátis com limite
+- **Netlify** — Grátis
+
+### n8n
+
+- **Railway** — R$7/mês
+- **Self-hosted** — Seu servidor
+
+### PostgreSQL
+
+- **Railway** — R$9/mês
+- **Render** — Grátis (1 mês)
+- **Neon** — Grátis com limite
+
+---
+
+## 📞 Troubleshooting
+
+### Bot não responde?
+
+```bash
+# Verificar token
+curl https://api.telegram.org/bot{TOKEN}/getMe
+
+# Verificar logs
+pm2 logs telegram-bot
+
+```
+
+### n8n workflows não executam?
+
+```bash
+# Verificar credenciais
+# Verificar cron expression (https://crontab.guru)
+# Logs: Dashboard n8n
+
+```
+
+### Agent IA não funciona?
+
+```bash
+# Testar API
+curl https://api.anthropic.com/v1/messages \
+  -H "Authorization: Bearer $ANTHROPIC_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{...}'
+
+```
+
+### Dashboard lento?
+
+```javascript
+// Adicionar cache
+const cache = new Map();
+setInterval(() => cache.clear(), 5 * 60 * 1000); // 5 min
+
+// Ou usar Redis
+npm install redis
+
+```
+
+---
+
+## 🎯 Roadmap Futuro
+
+- [ ] Chat IA em browser (não só Telegram)
+- [ ] Assinatura digital de orçamentos
+- [ ] Integração WhatsApp (além Telegram)
+- [ ] Mobile app nativa (React Native)
+- [ ] Previsão de vendas (ML)
+- [ ] A/B testing de preços
+- [ ] CRM integrado com histórico completo
+- [ ] Payment gateway (Stripe/PagSeguro)
+- [ ] Análise competitiva de preços
+- [ ] Inteligência de segmentação de clientes
+
+---
+
+## 💡 Tips & Tricks
+
+### 1. Usar context window do Claude
+
+```javascript
+// Incluir histórico de conversa
+const conversationHistory = [{
+  role: "user",
+  content: "Criar orçamento..."
+}, {
+  role: "assistant",
+  content: "Cliente encontrado..."
+}];
+
+// Claude mantém contexto
+
+```
+
+### 2. Usar tool\_use para decisões
+
+```javascript
+// Deixar Claude decidir qual ferramenta usar
+// Não hard-code ações
+
+```
+
+### 3. Monitorar performance
+
+```bash
+# Adicionar logging
+console.log(`⏱️ Consulta levou ${Date.now() - start}ms`);
+
+```
+
+### 4. Usar webhook para real-time
+
+```javascript
+// Não fazer polling
+// Configurar webhooks para notificações
+
+```
+
+---
+
+## 📚 Documentação Externa
+
+- Claude API: https\://docs.anthropic.com
+- n8n: https\://docs.n8n.io
+- Telegraf: https\://telegraf.js.org
+- PostgreSQL: https\://www\.postgresql.org/docs
+
+---
+
+**🚀 Você tem um sistema production-ready com IA e automação total!**
+
+Qualquer dúvida? Me chame! 💬

@@ -1,0 +1,11 @@
+newmtl alvenaria_branca
+Kd 0.920 0.920 0.880
+Ka 0.100 0.100 0.100
+
+newmtl mdf_areia
+Kd 0.720 0.580 0.420
+Ka 0.100 0.100 0.100
+
+newmtl linha_corte
+Kd 0.080 0.080 0.080
+Ka 0.100 0.100 0.100

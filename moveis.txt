@@ -1,0 +1,845 @@
+Verifique outras opções que poderia substituir o Promob e me entregar um bom resultado 
+
+Sim. E, olhando especificamente para o que você quer construir — Agent IA + n8n + API + criação de ambientes + orçamento — eu não escolheria necessariamente outro “Promob clone”. Eu procuraria a plataforma que seja mais automatizável.
+
+Depois de comparar as opções atuais, SketchUp é a alternativa que mais me chama atenção para o seu projeto, enquanto Cabinet Vision é a alternativa mais forte se o objetivo principal for chegar até fabricação/CNC.
+
+Minha classificação para o seu projeto
+Opção	3D	Móveis planejados	Automação/API	IA/n8n	Orçamento	Fabricação	Minha nota
+SketchUp + extensão própria	⭐⭐⭐⭐⭐	⭐⭐⭐⭐	⭐⭐⭐⭐⭐	⭐⭐⭐⭐⭐	⭐⭐⭐⭐	⭐⭐⭐	9,5/10
+Cabinet Vision	⭐⭐⭐⭐⭐	⭐⭐⭐⭐⭐	⭐⭐⭐⭐	⭐⭐⭐⭐	⭐⭐⭐⭐⭐	⭐⭐⭐⭐⭐	9/10
+Promob	⭐⭐⭐⭐⭐	⭐⭐⭐⭐⭐	⭐⭐⭐	⭐⭐⭐	⭐⭐⭐⭐⭐	⭐⭐⭐⭐⭐	8,5/10
+PolyBoard	⭐⭐⭐⭐	⭐⭐⭐⭐⭐	⭐⭐⭐	⭐⭐⭐⭐	⭐⭐⭐⭐	⭐⭐⭐⭐⭐	8/10
+Mozaik	⭐⭐⭐⭐	⭐⭐⭐⭐⭐	⭐⭐⭐	⭐⭐⭐	⭐⭐⭐⭐	⭐⭐⭐⭐⭐	8/10
+2020 Design	⭐⭐⭐⭐⭐	⭐⭐⭐⭐⭐	⭐⭐⭐	⭐⭐⭐	⭐⭐⭐⭐⭐	⭐⭐⭐	7,5/10
+SketchList 3D	⭐⭐⭐⭐	⭐⭐⭐⭐	⭐⭐⭐	⭐⭐⭐	⭐⭐⭐	⭐⭐⭐⭐	7,5/10
+Blender + sistema próprio	⭐⭐⭐⭐⭐	⭐⭐	⭐⭐⭐⭐⭐	⭐⭐⭐⭐⭐	⭐⭐⭐	⭐⭐	7,5/10
+
+Essa pontuação é minha avaliação para o seu caso específico, não uma classificação oficial dos fabricantes.
+
+🥇 1. SketchUp + nosso próprio sistema
+
+Aqui está a opção que eu investigaria primeiro.
+
+O motivo é simples:
+
+o SketchUp possui uma API oficial muito mais aberta para desenvolvimento.
+
+A própria Trimble mantém um Developer Center com APIs para criar extensões, automatizar fluxos e integrar dados externos. Existe inclusive a SketchUp Ruby API, que permite controlar modelos e a aplicação por dentro do SketchUp.
+
+E a API consegue acessar diretamente:
+
+modelos;
+geometria;
+grupos;
+componentes;
+materiais;
+entidades;
+seleção;
+arquivos;
+extensões.
+
+Isso muda completamente o projeto.
+
+Poderíamos fazer:
+                    TELEGRAM
+                       ↓
+                    AGENT IA
+                       ↓
+                      n8n
+                       ↓
+                 SUA API NODE
+                       ↓
+              ┌────────────────┐
+              │ SKETCHUP PLUGIN│
+              │    "Rômulo AI" │
+              └───────┬────────┘
+                      ↓
+                  SKETCHUP
+                      ↓
+               AMBIENTE 3D
+
+E o Agent poderia mandar:
+
+{
+  "ambiente": "cozinha",
+  "largura": 3200,
+  "profundidade": 2800,
+  "altura": 2700,
+  "formato": "L",
+  "modulos": [
+    "balcao",
+    "aereo",
+    "torre_forno",
+    "gaveteiro"
+  ]
+}
+
+O plugin Ruby recebe isso e cria a geometria dentro do SketchUp.
+
+A própria documentação oficial diz que extensões podem ser usadas para automatizar tarefas e adicionar novas ferramentas.
+
+🔥 Isso permitiria fazer algo que eu acho mais interessante que o Promob
+
+Imagine seu vendedor dizendo no Telegram:
+
+"Cria uma cozinha em L de 3,20 x 2,80. Altura 2,70. Quero torre quente do lado esquerdo, 4 gavetas, três aéreos e bancada de 60."
+
+O Agent transforma isso em JSON.
+
+O n8n envia para sua API.
+
+Sua API envia para o plugin.
+
+O SketchUp cria:
+
+┌──────────────────────────────┐
+│                              │
+│  AÉREO  AÉREO  AÉREO        │
+│ ┌────┬────┬────┬────┐       │
+│ │    │    │    │    │       │
+│ └────┴────┴────┴────┘       │
+│                              │
+│ TORRE       BANCADA          │
+│ ┌───┐ ┌──────────────────┐   │
+│ │   │ │                  │   │
+│ │   │ │                  │   │
+│ │   │ └──────────────────┘   │
+│ └───┘                         │
+└──────────────────────────────┘
+
+E depois o sistema poderia gerar:
+
+3D → medidas → peças → orçamento → proposta.
+
+🥈 2. Cabinet Vision
+
+Se você disser:
+
+"Não quero apenas vender o projeto. Quero chegar até a fabricação."
+
+Então eu colocaria Cabinet Vision na frente do SketchUp.
+
+A Hexagon descreve o Cabinet Vision como uma solução completa de engenharia para gabinetes e closets, com:
+
+projeto;
+3D;
+render;
+requisitos de materiais;
+listas de corte;
+montagem;
+orçamento;
+fabricação;
+CNC.
+
+O módulo Core Cabinets, por exemplo, atualiza automaticamente as operações de fabricação quando o projeto é alterado.
+
+E o sistema pode gerar código para máquinas CNC através do ecossistema S2M.
+
+Portanto:
+AGENT
+ ↓
+n8n
+ ↓
+API
+ ↓
+CABINET VISION
+ ↓
+PROJETO
+ ↓
+ENGENHARIA
+ ↓
+LISTA DE PEÇAS
+ ↓
+CORTE
+ ↓
+CNC
+
+É extremamente forte.
+
+Problema: para o nosso objetivo de construir uma integração personalizada, eu ainda precisaria investigar melhor a API/SDK disponível e as condições comerciais. Não encontrei evidência pública tão clara quanto a do SketchUp sobre uma API de controle equivalente à Ruby API.
+
+🥉 3. PolyBoard
+
+O PolyBoard é outra opção interessante principalmente para marcenaria sob medida.
+
+Eu o consideraria se você pretende fazer:
+
+móveis personalizados;
+armários;
+cozinhas;
+closets;
+móveis fora de medidas padronizadas;
+fabricação.
+
+Ele é mais orientado à engenharia do móvel do que simplesmente à apresentação.
+
+Mas, para o nosso projeto, novamente existe uma diferença:
+
+quanto mais fechado o software, mais dependentes ficamos da API oficial do fabricante.
+
+4. Mozaik
+
+O Mozaik é muito interessante para uma marcenaria que quer chegar à produção.
+
+A lógica é aproximadamente:
+
+Projeto
+ ↓
+Cabinetry
+ ↓
+Material
+ ↓
+Cutlist
+ ↓
+CNC
+
+Eu colocaria o Mozaik como concorrente sério do Cabinet Vision para produção, mas não como minha primeira escolha para construir um Agent IA personalizado.
+
+5. 2020 Design / ProKitchen
+
+São opções muito fortes para lojas de cozinhas.
+
+O foco é muito parecido com:
+
+Cliente
+ ↓
+Ambiente
+ ↓
+Catálogo
+ ↓
+Projeto
+ ↓
+Render
+ ↓
+Venda
+
+Se o objetivo fosse somente uma ferramenta comercial para projetistas, eu consideraria seriamente.
+
+Mas para:
+
+"Quero que minha IA crie o ambiente automaticamente."
+
+eu ainda prefiro SketchUp.
+
+6. E existe uma opção que pode ser ainda mais interessante: construir nosso próprio "Promob"
+
+Essa é a opção mais ousada.
+
+Em vez de:
+
+Agent → Promob
+
+poderíamos fazer:
+
+Agent
+ ↓
+n8n
+ ↓
+Nossa API
+ ↓
+Nosso motor 3D
+ ↓
+Nosso catálogo
+ ↓
+Nosso orçamento
+ ↓
+Nosso render
+
+Usando, por exemplo:
+
+Three.js / Babylon.js + WebGL
+
+para o ambiente 3D.
+
+Aí teríamos controle absoluto.
+
+🚀 Imagine o sistema
+
+Você abre:
+
+futpontos... 
+
+ou um novo sistema, por exemplo:
+
+PROJETO IA
+
+E aparece:
+
+┌─────────────────────────────────────┐
+│          PROJETO IA                 │
+├─────────────────────────────────────┤
+│                                     │
+│       MODELO 3D DA COZINHA          │
+│                                     │
+│          ┌─────────────┐            │
+│          │             │            │
+│          │   ARMÁRIO   │            │
+│          │             │            │
+│          └─────────────┘            │
+│                                     │
+├─────────────────────────────────────┤
+│ 🤖 O que deseja alterar?            │
+│                                     │
+│ "Coloque mais 2 gavetas"            │
+│                                     │
+└─────────────────────────────────────┘
+
+Você escreve:
+
+"Aumente a bancada para 65 cm."
+
+A IA altera o projeto.
+
+E aí entra o seu n8n
+                 AGENT IA
+                    │
+                    ▼
+                  N8N
+                    │
+          ┌─────────┼─────────┐
+          ↓         ↓         ↓
+      Clientes   Produtos   Projeto
+          │         │         │
+          └─────────┼─────────┘
+                    ↓
+                 SUA API
+                    │
+          ┌─────────┴──────────┐
+          ↓                    ↓
+       PostgreSQL           MOTOR 3D
+                               │
+                               ↓
+                            PROJETO
+                               │
+                   ┌───────────┼───────────┐
+                   ↓           ↓           ↓
+                 3D         ORÇAMENTO    LISTA
+                              │          PEÇAS
+                              ↓
+                           CLIENTE
+🧠 Minha escolha para você
+
+Considerando o que você já está desenvolvendo com n8n, Agent IA, Telegram, Node.js e PostgreSQL, eu faria uma avaliação diferente da que faria para uma marcenaria comum:
+
+Se quer usar um software pronto:
+
+1º — SketchUp + nossa extensão
+
+2º — Cabinet Vision
+
+3º — Promob
+
+4º — PolyBoard
+
+5º — Mozaik
+
+Se quer construir um produto próprio:
+
+SketchUp como motor de projeto + nossa API + Agent IA + n8n.
+
+Isso é particularmente interessante porque a Trimble oferece oficialmente o SketchUp Desktop SDK, que permite solicitar acesso para ler e escrever arquivos .SKP, além da API Ruby para controlar o SketchUp por dentro.
+
+⭐ O ponto decisivo
+
+O que me faria escolher SketchUp no seu lugar é isto:
+
+Nós conseguimos programar a inteligência do sistema.
+
+Não ficamos esperando a Promob liberar uma API específica para:
+
+criar armário → adicionar porta → alterar largura → adicionar gaveta → mudar material.
+
+A própria API do SketchUp foi feita para criar extensões e manipular o modelo.
+
+Então podemos construir uma camada:
+
+PROMOB
+   ❌
+   │
+   │ fechado
+   │
+   ▼
+
+SKETCHUP
+   ↓
+┌────────────────────────┐
+│   NOSSA EXTENSÃO IA    │
+├────────────────────────┤
+│ Criar parede           │
+│ Criar armário          │
+│ Criar gaveta           │
+│ Criar porta            │
+│ Criar bancada          │
+│ Alterar medidas        │
+│ Aplicar material       │
+│ Calcular peças         │
+│ Gerar orçamento        │
+│ Exportar DXF/SKP       │
+└───────────┬────────────┘
+            ↓
+           n8n
+
+Para o seu objetivo específico, eu considero essa arquitetura mais promissora que tentar "forçar" uma integração profunda com o Promob.
+
+E o mais interessante: podemos começar pequeno — primeiro fazer a IA criar automaticamente uma cozinha simples no SketchUp a partir de uma mensagem do Telegram. Depois acrescentamos módulos, materiais, orçamento, catálogo e fabricação.
+
+Editar
+
+Sim. Fiz uma pesquisa focada no que realmente importa para o nosso projeto: API oficial, automação, criação de ambientes, modelagem 3D, objetos paramétricos, integração com IA/n8n e capacidade de gerar um resultado profissional.
+
+Não vou listar simplesmente "os melhores programas 3D". Vou avaliar quais podem fazer parte da arquitetura do sistema que estamos construindo.
+
+Minha seleção
+Ferramenta	Papel no projeto	API/automação	3D	Paramétrico	Minha nota
+Floorplanner	Planta + interiores + apresentação	⭐⭐⭐⭐⭐	⭐⭐⭐⭐	⭐⭐⭐	9,5
+SketchUp	Modelagem detalhada	⭐⭐⭐⭐⭐	⭐⭐⭐⭐⭐	⭐⭐⭐⭐	9,5
+FreeCAD	Engenharia/modelagem paramétrica	⭐⭐⭐⭐⭐	⭐⭐⭐⭐	⭐⭐⭐⭐⭐	9,0
+Blender	Renderização + 3D avançado	⭐⭐⭐⭐⭐	⭐⭐⭐⭐⭐	⭐⭐⭐⭐	8,8
+Revit	BIM + engenharia + documentação	⭐⭐⭐⭐⭐	⭐⭐⭐⭐⭐	⭐⭐⭐⭐⭐	8,7
+Three.js	Visualizador 3D próprio na web	⭐⭐⭐⭐⭐	⭐⭐⭐⭐	⭐⭐⭐	8,5
+
+Eu consideraria 6 ferramentas, mas não significa que devemos usar todas.
+
+1. 🥇 Floorplanner — interface de projeto
+
+É o que estamos investigando agora e continua sendo uma das opções mais interessantes.
+
+O diferencial é que o FML é um formato JSON próprio para descrever plantas, incluindo paredes, portas, janelas, áreas e objetos/móveis. O próprio Floorplanner afirma que a plataforma inteira funciona sobre FML e que a API pode automatizar entrada e saída de projetos.
+
+E nós já comprovamos isso na prática:
+
+api.state.walls[0]
+
+Ou seja, não estamos apenas acreditando na documentação: já conseguimos acessar a estrutura interna do projeto.
+
+Onde eu usaria
+Cliente
+   ↓
+Agent
+   ↓
+Floorplanner
+   ↓
+Planta / layout / decoração
+Excelente para
+paredes;
+ambientes;
+portas;
+janelas;
+móveis;
+materiais;
+visualização;
+apresentação ao cliente;
+edição visual.
+Ponto forte
+
+O FML pode funcionar como uma ponte entre o nosso sistema e o Floorplanner.
+
+Ponto fraco
+
+Ainda precisamos validar profundamente os items/refid e o catálogo para saber se conseguimos representar móveis planejados parametrizados, e não apenas móveis decorativos.
+
+Conclusão: eu manteria no projeto.
+
+2. 🥇 SketchUp — modelador principal
+
+O SketchUp continua sendo fortíssimo para a parte de modelagem.
+
+E agora temos uma informação oficial muito importante: o ecossistema do SketchUp possui Ruby API para extensões e também Desktop SDK para ler/escrever arquivos SKP.
+
+A Ruby API permite acessar o modelo, entidades, componentes, materiais etc.
+
+A própria documentação cita explicitamente a possibilidade de criar extensões que automatizam workflows e integram dados externos.
+
+No nosso projeto
+
+Poderíamos ter:
+
+NOSSA API
+    ↓
+JSON do projeto
+    ↓
+SketchUp Extension
+    ↓
+Ruby API
+    ↓
+Modelo 3D
+
+Por exemplo:
+
+Criar módulo inferior
+600 × 560 × 720 mm
+        ↓
+Ruby
+        ↓
+Componente SketchUp
+Excelente para
+móveis planejados;
+componentes;
+geometria precisa;
+materiais;
+detalhamento;
+modelagem profissional;
+componentes reutilizáveis.
+Ponto forte
+
+Extensibilidade oficial muito madura.
+
+Ponto fraco
+
+A automação acontece dentro do ecossistema do SketchUp; não é simplesmente uma REST API externa como seria ideal para um servidor web. A própria documentação informa que a Ruby API é executada dentro do SketchUp.
+
+Conclusão: eu manteria como candidato principal para a modelagem avançada.
+
+3. 🥉 FreeCAD — candidato que eu não descartaria
+
+Aqui apareceu uma opção que eu acho que merece muita atenção.
+
+O FreeCAD é paramétrico, possui API/documentação para C++ e Python e permite criar objetos, modificar geometria e desenvolver ferramentas próprias.
+
+E tem algo muito alinhado ao nosso objetivo:
+
+praticamente toda a camada externa pode ser controlada por Python.
+
+A documentação oficial diz que Python pode ser usado para criar objetos, modificar geometria, analisar conteúdo e criar ferramentas/workbenches personalizados.
+
+Além disso, possui BIM integrado e trabalha com formatos como:
+
+STEP
+IGES
+OBJ
+STL
+DWG
+DXF
+SVG
+IFC
+...
+
+Isso abre uma arquitetura interessante
+Agent
+ ↓
+JSON
+ ↓
+Python
+ ↓
+FreeCAD
+ ↓
+Modelo paramétrico
+E para nosso projeto de móveis?
+
+Podemos imaginar:
+
+Módulo
+ ├── largura
+ ├── altura
+ ├── profundidade
+ ├── espessura MDF
+ ├── número de portas
+ ├── gavetas
+ ├── material
+ └── ferragens
+
+Alterou:
+
+largura = 600
+
+O modelo pode ser reconstruído parametricamente.
+
+Ponto fortíssimo
+
+Controle programático + parametrização + software aberto.
+
+Ponto fraco
+
+A experiência visual e de apresentação não é tão pronta quanto Floorplanner/SketchUp.
+
+Conclusão: eu investigaria seriamente como motor paramétrico/backend de engenharia.
+
+4. Blender — renderização e geração 3D
+
+O Blender também entra muito bem, mas eu não o usaria como primeira ferramenta de desenho arquitetônico.
+
+A API oficial do Blender permite usar Python para modelagem, automação e scripts de importação/exportação. A documentação oficial descreve explicitamente a possibilidade de construir uma cena programaticamente.
+
+Onde ele seria excelente
+SketchUp / FreeCAD
+        ↓
+      modelo
+        ↓
+     Blender
+        ↓
+   iluminação
+        ↓
+   materiais
+        ↓
+    render
+
+Poderíamos usar o Blender como:
+
+"motor de renderização"
+
+do nosso sistema.
+
+Exemplo
+
+Cliente:
+
+Quero cozinha em MDF amadeirado com bancada preta.
+
+O sistema:
+
+Modelo paramétrico
+       ↓
+Blender
+       ↓
+materiais
+       ↓
+iluminação
+       ↓
+renderização
+Ponto forte
+
+Automação extremamente poderosa.
+
+Ponto fraco
+
+Para construir a planta e editar ambientes, ele é muito menos conveniente que Floorplanner.
+
+Conclusão: excelente como componente secundário.
+
+5. Revit — se quisermos subir para BIM
+
+O Revit é outra categoria.
+
+A API oficial da Autodesk permite:
+
+criar add-ins;
+automatizar tarefas;
+importar dados externos;
+criar elementos;
+alterar parâmetros;
+extrair dados;
+gerar documentação;
+integrar outras aplicações.
+
+A Autodesk mantém SDK, documentação e exemplos para desenvolvimento da API.
+
+Arquitetura
+Agent
+ ↓
+JSON
+ ↓
+Revit API
+ ↓
+BIM
+Excelente para
+arquitetura;
+construção;
+engenharia;
+BIM;
+documentação;
+quantitativos;
+elementos construtivos.
+Mas...
+
+Para o nosso objetivo inicial:
+
+"Cliente pede uma cozinha planejada e recebe uma visualização 3D."
+
+Revit é provavelmente mais complexo do que precisamos.
+
+Onde ele poderia entrar futuramente
+
+Se o projeto crescer para:
+
+móveis
++
+arquitetura
++
+estrutura
++
+instalações
++
+BIM
++
+documentação
+
+aí Revit fica muito interessante.
+
+Conclusão: poderoso, mas eu não começaria por ele.
+
+6. Three.js — talvez o mais estratégico no longo prazo
+
+Essa não é exatamente uma alternativa ao Floorplanner/SketchUp.
+
+É diferente.
+
+É a possibilidade de nós mesmos construirmos o visualizador 3D do sistema.
+
+O Three.js oferece uma camada WebGL para renderização 3D no navegador.
+
+Então poderíamos ter:
+
+             NOSSA API
+                 ↓
+          MODELO CENTRAL
+                 ↓
+              Three.js
+                 ↓
+       ┌─────────────────┐
+       │                 │
+       │       3D        │
+       │                 │
+       │    COZINHA      │
+       │                 │
+       └─────────────────┘
+
+Isso permitiria que o cliente não precisasse necessariamente instalar nada.
+
+🔥 E aqui está o que eu acho mais interessante
+
+Depois dessa pesquisa, eu não escolheria apenas uma ferramenta.
+
+Eu montaria uma arquitetura híbrida.
+
+Minha arquitetura favorita
+                         CLIENTE
+                            │
+                            ▼
+                       TELEGRAM
+                            │
+                            ▼
+                         AGENT
+                            │
+                            ▼
+                          N8N
+                            │
+                            ▼
+                   ┌─────────────────┐
+                   │    NOSSA API    │
+                   │     Node.js     │
+                   └────────┬────────┘
+                            │
+                    MODELO CENTRAL
+                       DO PROJETO
+                            │
+             ┌──────────────┼──────────────┐
+             │              │              │
+             ▼              ▼              ▼
+       FLOORPLANNER      SKETCHUP       FREECAD
+             │              │              │
+        apresentação     modelagem     paramétrico
+             │              │              │
+             └──────────────┼──────────────┘
+                            │
+                            ▼
+                         BLENDER
+                            │
+                            ▼
+                         RENDER
+                            │
+                            ▼
+                        THREE.JS
+                            │
+                            ▼
+                     VISUALIZAÇÃO WEB
+
+Não significa que todos serão obrigatórios.
+
+🏆 Minha classificação para o nosso projeto
+Se o objetivo é lançar rápido:
+
+1. Floorplanner
+
+Se o objetivo é modelagem profissional:
+
+2. SketchUp
+
+Se o objetivo é parametrização e automação aberta:
+
+3. FreeCAD
+
+Se o objetivo é renderização:
+
+4. Blender
+
+Se o objetivo é BIM profissional:
+
+5. Revit
+
+Se o objetivo é eliminar dependência de software externo no futuro:
+
+6. Three.js
+
+Mas eu faria uma mudança importante no projeto
+
+Até agora estávamos pensando:
+
+Floorplanner ↔ SketchUp
+
+Depois dessa pesquisa, eu acho melhor:
+
+                 NOSSO SISTEMA
+                       │
+                MODELO CENTRAL
+                       │
+       ┌───────────────┼───────────────┐
+       ▼               ▼               ▼
+ Floorplanner       SketchUp        FreeCAD
+       │               │               │
+       └───────────────┼───────────────┘
+                       ▼
+                    Blender
+                       │
+                       ▼
+                    Three.js
+
+Ou seja:
+
+o verdadeiro produto não será a integração entre dois softwares.
+
+O produto será o nosso sistema de projeto, e Floorplanner, SketchUp, FreeCAD e eventualmente Blender serão motores conectados a ele.
+
+Isso nos protege contra dependência de uma única plataforma.
+
+⭐ E há uma ferramenta que eu colocaria como prioridade imediata
+
+FreeCAD.
+
+Não para substituir o Floorplanner agora, mas para fazer um teste paralelo.
+
+Porque existe uma combinação muito interessante:
+
+Floorplanner
+   ↓
+geometria/layout
+   ↓
+JSON
+   ↓
+FreeCAD Python
+   ↓
+móveis paramétricos
+
+Se conseguirmos fazer isso funcionar, teremos uma solução muito mais poderosa para móveis planejados do que simplesmente transportar objetos decorativos de um programa para outro.
+
+E o FreeCAD é particularmente interessante porque é gratuito/open-source e tem automação Python e modelagem paramétrica nativas.
+
+Minha recomendação neste momento
+
+Não compre SketchUp, Revit ou outro software ainda.
+
+Vamos fazer um benchmark técnico com 3 candidatos:
+
+Floorplanner — que já estamos testando.
+SketchUp — API oficial.
+FreeCAD — Python + paramétrico.
+
+E comparar os três fazendo exatamente a mesma tarefa:
+
+Gerar automaticamente uma parede + um módulo de armário de 600 × 600 × 720 mm a partir de JSON.
+
+Isso vai nos dar uma resposta objetiva sobre qual deles deve ser o motor principal do nosso projeto, em vez de escolher por aparência ou popularidade.
+
+SketchUp Developer Center
+FreeCAD API
+Floorplanner FML 

@@ -1,0 +1,72 @@
+{
+  "workflows": [
+    {
+      "name": "Bookipi Scraper",
+      "id": "bookipi-scraper",
+      "trigger": { "type": "cron", "expression": "0 22 * * *" },
+      "nodes": [
+        { "type": "Puppeteer", "name": "Login & Navegar Bookipi", "config": { "loginSelector": "#email", "passwordSelector": "#senha" } },
+        { "type": "ExtractTable", "name": "Extrair Tabela Orçamentos", "config": { "selector": "table.orcamentos" } },
+        { "type": "Function", "name": "FormatarPayload", "config": { "script": "// transforma tabela em JSON padronizado" } },
+        { "type": "HTTP Request", "name": "POST para API", "config": { "url": "{{ $env.API_URL }}/webhook/orcamento-criado", "method": "POST" } },
+        { "type": "Telegram", "name": "Notificar Admin", "config": { "message": "Novo orçamentos importados" } }
+      ]
+    },
+    {
+      "name": "Notificar Cliente",
+      "id": "notificar-cliente",
+      "trigger": { "type": "webhook", "path": "/webhook/orcamento-criado" },
+      "nodes": [
+        { "type": "Webhook", "name": "Receber Orçamento", "config": {} },
+        { "type": "Function", "name": "GerarMensagemClaude", "config": { "script": "// chamar Claude/Anthropic para personalizar mensagem (pseudocode)" } },
+        { "type": "HTTP Request", "name": "Enviar Telegram API", "config": { "url": "https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage", "method": "POST" } },
+        { "type": "HTTP Request", "name": "Salvar Log", "config": { "url": "{{ $env.API_URL }}/api/logs", "method": "POST" } }
+      ]
+    },
+    {
+      "name": "Follow-up 7 dias",
+      "id": "followup-7-dias",
+      "trigger": { "type": "cron", "expression": "0 9 * * *" },
+      "nodes": [
+        { "type": "HTTP Request", "name": "GET Orçamentos pendentes", "config": { "url": "{{ $env.API_URL }}/api/orcamentos?status=enviado", "method": "GET" } },
+        { "type": "Function", "name": "Filtrar 7 dias", "config": { "script": "// filtra por data > 7 dias" } },
+        { "type": "Function", "name": "GerarMensagemClaude", "config": {} },
+        { "type": "Telegram", "name": "Enviar Follow-up", "config": {} }
+      ]
+    },
+    {
+      "name": "Relatório Diário",
+      "id": "relatorio-diario",
+      "trigger": { "type": "cron", "expression": "0 18 * * *" },
+      "nodes": [
+        { "type": "HTTP Request", "name": "GET Dados do Dia", "config": { "url": "{{ $env.API_URL }}/api/relatorios/dia", "method": "GET" } },
+        { "type": "Function", "name": "Calcular KPIs", "config": {} },
+        { "type": "Telegram", "name": "Enviar Relatório Admin", "config": {} }
+      ]
+    },
+    {
+      "name": "Detecção de Anomalias",
+      "id": "detecao-anomalias",
+      "trigger": { "type": "cron", "expression": "*/120 * * * *" },
+      "nodes": [
+        { "type": "HTTP Request", "name": "GET Últimos Orçamentos", "config": { "url": "{{ $env.API_URL }}/api/orcamentos?limit=50", "method": "GET" } },
+        { "type": "Function", "name": "Analisar Anomalias (Claude)", "config": { "script": "// enviar dados para Claude e analisar outliers" } },
+        { "type": "Telegram", "name": "Alerta Admin", "config": {} }
+      ]
+    },
+    {
+      "name": "Gerar Móveis",
+      "id": "gerar-moveis",
+      "trigger": { "type": "webhook", "path": "/webhook/gerar-moveis" },
+      "nodes": [
+        { "type": "Webhook", "name": "Receber Spec Móvel", "config": {} },
+        { "type": "Function", "name": "Validar Spec", "config": { "script": "// validar schema do móvel" } },
+        { "type": "HTTP Request", "name": "POST -> API Gerar BOM", "config": { "url": "{{ $env.API_URL }}/api/generate/bom", "method": "POST" } },
+        { "type": "HTTP Request", "name": "Trigger FreeCAD Job", "config": { "url": "{{ $env.API_URL }}/api/generate/freecad", "method": "POST" } },
+        { "type": "HTTP Request", "name": "Trigger SketchUp Job", "config": { "url": "{{ $env.API_URL }}/api/generate/sketchup", "method": "POST" } },
+        { "type": "HTTP Request", "name": "Salvar Cutlist", "config": { "url": "{{ $env.API_URL }}/api/cutlists", "method": "POST" } },
+        { "type": "Telegram", "name": "Notificar Cliente/Operador", "config": { "message": "Cutlist e modelo 3D gerados. Verifique na área de projetos." } }
+      ]
+    }
+  ]
+}

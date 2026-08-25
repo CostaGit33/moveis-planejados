@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Visualizador OBJ</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      color: #1f2933;
+      background: #f2f4f7;
+    }
+
+    .app {
+      height: 100vh;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-width: 0;
+    }
+
+    aside {
+      border-right: 1px solid #d7dde5;
+      background: #ffffff;
+      padding: 16px;
+      overflow: auto;
+    }
+
+    h1 {
+      margin: 0 0 16px;
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      color: #52606d;
+    }
+
+    input[type="range"] {
+      width: 100%;
+    }
+
+    button {
+      width: 42px;
+      height: 36px;
+      border: 1px solid #bcc6d3;
+      border-radius: 6px;
+      background: #f8fafc;
+      color: #243b53;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #eef2f7;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .stats {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #e1e7ef;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    main {
+      min-width: 0;
+      position: relative;
+      background: linear-gradient(#f8fafc, #e9eef5);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .status {
+      position: absolute;
+      left: 16px;
+      bottom: 16px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(188, 198, 211, 0.8);
+      font-size: 13px;
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+      }
+
+      aside {
+        border-right: 0;
+        border-bottom: 1px solid #d7dde5;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <h1>Visualizador OBJ</h1>
+      <div class="field">
+        <label for="zoom">Zoom</label>
+        <input id="zoom" type="range" min="40" max="220" value="105">
+      </div>
+      <div class="field">
+        <label>Rotacao</label>
+        <div class="buttons">
+          <button id="left" title="Girar para esquerda">&#8592;</button>
+          <button id="right" title="Girar para direita">&#8594;</button>
+          <button id="up" title="Inclinar para cima">&#8593;</button>
+          <button id="down" title="Inclinar para baixo">&#8595;</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Vista</label>
+        <div class="buttons">
+          <button id="iso" title="Vista isometrica">&#9673;</button>
+          <button id="top" title="Vista superior">&#9633;</button>
+          <button id="front" title="Vista frontal">&#9632;</button>
+        </div>
+      </div>
+      <div class="stats" id="stats">Carregando...</div>
+    </aside>
+    <main>
+      <canvas id="view"></canvas>
+      <div class="status" id="status">saida_poc/modelo.obj</div>
+    </main>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("view");
+    const ctx = canvas.getContext("2d");
+    const zoom = document.getElementById("zoom");
+    const stats = document.getElementById("stats");
+    const status = document.getElementById("status");
+
+    let vertices = [];
+    let faces = [];
+    let rotX = -0.48;
+    let rotY = 0.72;
+    let scale = 105;
+
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      draw();
+    }
+
+    function parseObj(text) {
+      vertices = [];
+      faces = [];
+      for (const rawLine of text.split(/\r?\n/)) {
+        const line = rawLine.trim();
+        if (line.startsWith("v ")) {
+          const [, x, y, z] = line.split(/\s+/);
+          vertices.push([Number(x), Number(y), Number(z)]);
+        } else if (line.startsWith("f ")) {
+          const indexes = line
+            .slice(2)
+            .trim()
+            .split(/\s+/)
+            .map((part) => Number(part.split("/")[0]) - 1);
+          if (indexes.length >= 3) faces.push(indexes);
+        }
+      }
+    }
+
+    function bounds() {
+      const min = [Infinity, Infinity, Infinity];
+      const max = [-Infinity, -Infinity, -Infinity];
+      for (const v of vertices) {
+        for (let i = 0; i < 3; i++) {
+          min[i] = Math.min(min[i], v[i]);
+          max[i] = Math.max(max[i], v[i]);
+        }
+      }
+      return { min, max, center: min.map((value, i) => (value + max[i]) / 2) };
+    }
+
+    function rotate(v, center) {
+      let x = v[0] - center[0];
+      let y = v[1] - center[1];
+      let z = v[2] - center[2];
+
+      const cx = Math.cos(rotX);
+      const sx = Math.sin(rotX);
+      const cy = Math.cos(rotY);
+      const sy = Math.sin(rotY);
+
+      const y1 = y * cx - z * sx;
+      const z1 = y * sx + z * cx;
+      const x2 = x * cy + z1 * sy;
+      const z2 = -x * sy + z1 * cy;
+
+      return [x2, y1, z2];
+    }
+
+    function project(v, center, width, height) {
+      const [x, y, z] = rotate(v, center);
+      const s = scale * 1.8;
+      return {
+        x: width / 2 + x * s,
+        y: height / 2 - y * s,
+        z,
+      };
+    }
+
+    function drawFace(points, shade) {
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(${shade}, ${Math.max(120, shade - 22)}, ${Math.max(80, shade - 58)}, 0.72)`;
+      ctx.fill();
+      ctx.strokeStyle = "rgba(31, 41, 51, 0.72)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    function drawGrid(width, height) {
+      ctx.strokeStyle = "rgba(151, 164, 184, 0.28)";
+      ctx.lineWidth = 1;
+      for (let x = 0; x < width; x += 40) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < height; y += 40) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+    }
+
+    function draw() {
+      const rect = canvas.getBoundingClientRect();
+      const width = rect.width;
+      const height = rect.height;
+      ctx.clearRect(0, 0, width, height);
+      drawGrid(width, height);
+
+      if (!vertices.length) return;
+
+      const box = bounds();
+      const projectedFaces = faces.map((face) => {
+        const points = face.map((index) => project(vertices[index], box.center, width, height));
+        const depth = points.reduce((total, point) => total + point.z, 0) / points.length;
+        return { points, depth };
+      }).sort((a, b) => a.depth - b.depth);
+
+      for (const item of projectedFaces) {
+        const shade = Math.floor(190 + Math.max(-30, Math.min(35, item.depth * 26)));
+        drawFace(item.points, shade);
+      }
+    }
+
+    function setView(x, y) {
+      rotX = x;
+      rotY = y;
+      draw();
+    }
+
+    async function load() {
+      try {
+        const response = await fetch("saida_poc/modelo.obj", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        parseObj(await response.text());
+        stats.innerHTML = `Vertices: ${vertices.length}<br>Faces: ${faces.length}<br>Arquivo: modelo.obj`;
+        status.textContent = "Modelo carregado";
+        resize();
+      } catch (error) {
+        status.textContent = "Execute com servidor local";
+        stats.textContent = String(error.message || error);
+      }
+    }
+
+    zoom.addEventListener("input", () => {
+      scale = Number(zoom.value);
+      draw();
+    });
+    document.getElementById("left").addEventListener("click", () => { rotY -= 0.18; draw(); });
+    document.getElementById("right").addEventListener("click", () => { rotY += 0.18; draw(); });
+    document.getElementById("up").addEventListener("click", () => { rotX -= 0.18; draw(); });
+    document.getElementById("down").addEventListener("click", () => { rotX += 0.18; draw(); });
+    document.getElementById("iso").addEventListener("click", () => setView(-0.48, 0.72));
+    document.getElementById("top").addEventListener("click", () => setView(-1.57, 0));
+    document.getElementById("front").addEventListener("click", () => setView(0, 0));
+    window.addEventListener("resize", resize);
+    load();
+  </script>
+</body>
+</html>
