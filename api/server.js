@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
+const { registerN8nRoutes } = require('./n8n-routes');
+const { registerMvpRoutes } = require('./mvp-routes');
 const path = require('path');
 
 const PORT = process.env.PORT || 8090;
@@ -62,6 +64,14 @@ function generateFromSpec(spec, options={}){
 // --- server ---
 const app = express();
 app.use(express.json({ limit: '2mb' }));
+app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use('/saida_poc', express.static(path.join(__dirname, '..', 'saida_poc')));
+registerMvpRoutes(app);
+registerN8nRoutes(app);
+
+app.get('/projeto_base.json', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'projeto_base.json'));
+});
 
 app.get('/health', (req,res)=>{
   res.json({ status: 'ok', uptime: process.uptime() });

@@ -1,0 +1,12 @@
+node_modules
+api/node_modules
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+npm-debug.log*
+*.log
+saida_poc/freecad_jobs
+saida_poc/sketchup_jobs
+__pycache__
