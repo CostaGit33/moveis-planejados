@@ -5,7 +5,7 @@
   "description": "MVP local para projeto e orcamento de moveis planejados.",
   "scripts": {
     "start": "node api/server.js",
-    "check": "node --check server.js && node --check public/app.js",
+    "check": "node --check api/server.js && node --check api/db.js && node --check api/mvp-routes.js && node --check api/n8n-routes.js && node --check furniture-builder.js && node --check server.js && node --check public/app.js",
     "gerar:poc": "python gerar_poc.py"
   },
   "dependencies": {
