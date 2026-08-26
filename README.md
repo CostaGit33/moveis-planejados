@@ -1,6 +1,6 @@
 # Projeto Móveis Planejados — Esqueleto
 
-Este diretório contém um esqueleto inicial do sistema de orçamentos para móveis planejados (API Node.js, agent IA, bot Telegram, workflows n8n, componentes React).
+Este diretório contém o sistema de projetos de móveis planejados, com API Node.js/Express, Agent IA via N8N, gerador paramétrico, viewer web híbrido Three.js e adaptadores para saídas técnicas. O orçamento permanece disponível como funcionalidade complementar.
 
 Arquivos criados:
 - agent-ia.js (esqueleto das ferramentas para o Agent IA)
@@ -10,7 +10,9 @@ Arquivos criados:
 - OrcamentosApp.jsx, Dashboard.jsx (componentes React de exemplo)
 - .env.example, SETUP.md, EXEMPLOS_API.md
 
-Instruções rápidas: veja SETUP.md
+Instruções rápidas: veja SETUP.md e HYBRID_ARCHITECTURE.md.
+
+A base híbrida está organizada em `hybrid-contract.js`, `api/hybrid-routes.js` e `public/hybrid-viewer.mjs`. A API central continua sendo a fonte de verdade; FreeCAD, Blender e nesting são registrados como jobs para workers externos, enquanto o viewer e a exportação GLB funcionam no navegador.
 
 Scripts úteis:
 - node apply_schema.js    # aplica orcamento_moveis_schema.sql usando variáveis do .env

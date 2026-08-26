@@ -131,6 +131,7 @@
             <button id="loadBase" class="button button-secondary" type="button">Carregar base</button>
             <button id="simulateFlow" class="button button-ghost" type="button">Simular fluxo</button>
             <button id="exportJson" class="button button-ghost" type="button">Exportar JSON</button>
+            <button id="exportGlb" class="button button-ghost" type="button">Exportar GLB</button>
           </div>
         </div>
         <p class="helper-text" id="generationStatus">Edite as medidas e gere uma nova composição.</p>
@@ -153,9 +154,12 @@
             <p class="eyebrow">03 · VOLUME</p>
             <h2>Visão 3D</h2>
           </div>
-          <span class="metric-chip">Canvas paramétrico</span>
-        </div>
-        <canvas id="visao3d" width="900" height="500"></canvas>
+          <span class="metric-chip" id="hybridViewerStatus">Three.js · cena híbrida</span>
+          </div>
+          <div id="hybridViewer" class="hybrid-viewer" aria-label="Visualização 3D híbrida">
+            <div class="hybrid-viewer-empty" id="hybridViewerEmpty">Inicializando visualizador híbrido…</div>
+          </div>
+          <canvas id="visao3d" width="900" height="500" hidden aria-hidden="true"></canvas>
       </section>
 
       <section class="panel output-panel">
@@ -225,6 +229,15 @@
     </main>
   </div>
 
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "/vendor/three/build/three.module.js",
+        "three/addons/": "/vendor/three/examples/jsm/"
+      }
+    }
+  </script>
   <script src="/app.js"></script>
+  <script type="module" src="/hybrid-viewer.mjs"></script>
 </body>
 </html>

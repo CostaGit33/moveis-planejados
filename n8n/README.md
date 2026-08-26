@@ -41,11 +41,11 @@ O comando usa `CREATE TABLE IF NOT EXISTS` e não deve ser executado sem confirm
 Configure no ambiente do N8N:
 
 ```dotenv
-API_URL=http://127.0.0.1:8091
+API_URL=https://api.novaagencian8n.online
 TELEGRAM_BOT_TOKEN=seu_token
 ```
 
-`API_URL` deve apontar para a API Express (`api/server.js`) quando o workflow **Gerar Móveis** for utilizado. Se a API estiver rodando na porta padrão, use `http://127.0.0.1:8090`; para executar simultaneamente ao servidor web da raiz, use `PORT=8091`.
+`API_URL` deve apontar para a API Express (`api/server.js`) quando o workflow **Gerar Móveis** for utilizado. Em produção, use `https://api.novaagencian8n.online`. O webhook de entrada conversacional usado atualmente é `https://webhook.novaagencian8n.online/webhook/moveis-pedido`; os fluxos comerciais descritos no blueprint são legados e permanecem separados.
 
 Não coloque tokens reais neste repositório. Use as credenciais próprias do N8N ou variáveis de ambiente protegidas.
 
@@ -64,3 +64,41 @@ O comando verifica se o JSON é válido, lista os workflows, extrai os endpoints
 Os workflows comerciais ainda dependem de duas rotas que não existem atualmente: `POST /webhook/orcamento-criado` e `POST /api/logs`. As rotas `GET /api/orcamentos`, `GET /api/relatorios/dia` e `POST /api/cutlists` foram implementadas usando as tabelas existentes. A rota de logs continua pendente porque o schema fornecido não contém uma tabela de logs.
 
 Além disso, os nós `Puppeteer`, `ExtractTable`, `Function` e `GerarMensagemClaude` estão descritos apenas por pseudocódigo no blueprint. Eles precisam ser configurados como nós nativos do N8N, com credenciais e scripts reais, antes de serem considerados workflows prontos para produção.
+
+## Arquitetura híbrida do montador
+
+O fluxo principal continua recebendo o pedido pelo Webhook e usando o Agent para interpretar linguagem natural. O orçamento permanece disponível, mas não é uma dependência da visualização ou da geração técnica.
+
+Sequência recomendada:
+
+```text
+Webhook
+  -> AI Agent
+  -> Preparar Projeto
+  -> POST /api/projetos/normalizar
+  -> POST /api/hybrid/scene
+  -> POST /api/orcamentos/calcular   (opcional nesta fase)
+  -> POST /api/hybrid/jobs            (opcional por tipo)
+  -> Montar Resposta
+  -> Respond to Webhook
+```
+
+A rota `POST /api/hybrid/scene` recebe o projeto normalizado e devolve `project`, `parts` e `scene`. A cena usa milímetros, o sistema de coordenadas `x=largura,y=profundidade,z=altura` e materiais PBR básicos. Essa saída é consumida pelo viewer Three.js no navegador.
+
+A rota `GET /api/hybrid/capabilities` informa os adaptadores disponíveis. O viewer web e o adaptador SketchUp estão disponíveis; FreeCAD, Blender e nesting ficam registrados como jobs até que existam workers externos para consumir os arquivos.
+
+Para registrar uma geração técnica, use `POST /api/hybrid/jobs` com um corpo semelhante a:
+
+```json
+{
+  "type": "freecad",
+  "project": "={{ $json.projeto }}",
+  "options": {
+    "format": "step+techdraw"
+  }
+}
+```
+
+Os valores dinâmicos devem ser inseridos no modo Expression do N8N, sem colocar o objeto em aspas. Os tipos aceitos são `freecad`, `sketchup`, `blender` e `nesting`. O retorno `202` significa que o contrato foi registrado; não significa que um worker externo já executou o job.
+
+O fluxo deve tratar orçamento, render e exportação como saídas independentes. Não se deve bloquear a cena 3D porque o PostgreSQL está indisponível, nem executar FreeCAD ou Blender a cada alteração de campo. O browser deve permanecer rápido e os workers devem ser acionados após confirmação ou solicitação de exportação.

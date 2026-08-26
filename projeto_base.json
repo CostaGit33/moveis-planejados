@@ -1,5 +1,7 @@
 {
+  "schema_version": "1.1",
   "unidade": "mm",
+  "pedido": "Cozinha linear com módulo inferior",
   "ambiente": {
     "nome": "POC cozinha linear",
     "largura": 3200,
@@ -23,7 +25,7 @@
     {
       "id": "MOD-001",
       "tipo": "armario_inferior",
-      "nome": "Armario inferior 600",
+      "nome": "Armário inferior 600",
       "x": 300,
       "y": 120,
       "z": 0,
@@ -33,21 +35,64 @@
       "espessura_chapa": 18,
       "material": "mdf_areia",
       "portas": 2,
-      "gavetas": 0
+      "gavetas": 0,
+      "prateleiras": 0,
+      "parametros": {
+        "folga_porta": 2,
+        "recuo_fundo": 18,
+        "rodape": {
+          "altura": 100,
+          "recuo": 50
+        },
+        "bordas_visiveis": ["frente", "laterais"]
+      }
     }
   ],
   "materiais": {
     "alvenaria_branca": {
       "nome": "Alvenaria branca",
-      "cor_rgb": [0.92, 0.92, 0.88]
+      "cor_rgb": [0.92, 0.92, 0.88],
+      "pbr": {
+        "base_color": "#eae8df",
+        "roughness": 0.88,
+        "metallic": 0
+      }
     },
     "mdf_areia": {
       "nome": "MDF Areia",
-      "cor_rgb": [0.72, 0.58, 0.42]
+      "cor_rgb": [0.72, 0.58, 0.42],
+      "pbr": {
+        "base_color": "#b8895d",
+        "roughness": 0.62,
+        "metallic": 0,
+        "normal_map": null,
+        "ao_map": null,
+        "uv_scale": 1
+      }
     },
     "linha_corte": {
       "nome": "Linha de corte",
-      "cor_rgb": [0.08, 0.08, 0.08]
+      "cor_rgb": [0.08, 0.08, 0.08],
+      "pbr": {
+        "base_color": "#141414",
+        "roughness": 0.7,
+        "metallic": 0
+      }
     }
+  },
+  "fabricacao": {
+    "unidade": "mm",
+    "kerf": 3,
+    "margem": 10,
+    "rotacao_permitida": true,
+    "veio": "preservar",
+    "fita_borda_mm": 1
+  },
+  "render": {
+    "engine": "three",
+    "pipeline": "glb-compatível",
+    "materiais": "pbr",
+    "camera": "perspectiva",
+    "iluminacao": "studio"
   }
 }

@@ -4,6 +4,9 @@ WORKDIR /app
 
 RUN apk add --no-cache bash curl
 
+COPY package*.json ./
+RUN npm ci --omit=dev --no-audit --no-fund
+
 COPY api/package*.json ./api/
 RUN cd api && npm ci --omit=dev --no-audit --no-fund
 

@@ -355,6 +355,38 @@ textarea {
   line-height: 1.45;
 }
 
+.hybrid-viewer {
+  position: relative;
+  min-height: 360px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: linear-gradient(160deg, #f8f5ef, #e9e2d8);
+}
+
+.hybrid-viewer canvas {
+  display: block;
+  width: 100%;
+  height: 360px;
+}
+
+.hybrid-viewer-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.hybrid-viewer[data-ready="true"] .hybrid-viewer-empty {
+  display: none;
+}
+
+canvas[hidden] {
+  display: none !important;
+}
+
 canvas {
   display: block;
   width: 100%;
@@ -590,6 +622,12 @@ pre {
 }
 
 @media (max-width: 520px) {
+  .hybrid-viewer,
+  .hybrid-viewer canvas {
+    min-height: 280px;
+    height: 280px;
+  }
+
   .topbar {
     padding: 20px 16px;
   }

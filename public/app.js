@@ -39,6 +39,7 @@ function numberValue(id) {
 
 function buildProject() {
   return {
+    schema_version: "1.1",
     unidade: "mm",
     pedido: fields.pedido.value.trim(),
     ambiente: {
@@ -77,7 +78,37 @@ function buildProject() {
         gavetas: numberValue("moduloGavetas"),
         prateleiras: numberValue("moduloPrateleiras")
       }
-    ]
+    ],
+    materiais: {
+      alvenaria_branca: {
+        nome: "Alvenaria branca",
+        pbr: { base_color: "#eae8df", roughness: 0.88, metallic: 0 }
+      },
+      mdf_areia: {
+        nome: "MDF Areia",
+        pbr: { base_color: "#b8895d", roughness: 0.62, metallic: 0 }
+      },
+      mdf_cinza: {
+        nome: "MDF Cinza",
+        pbr: { base_color: "#6b7280", roughness: 0.62, metallic: 0 }
+      },
+      mdf_carvalho: {
+        nome: "MDF Carvalho",
+        pbr: { base_color: "#a16d3a", roughness: 0.56, metallic: 0 }
+      }
+    },
+    fabricacao: {
+      unidade: "mm",
+      kerf: 3,
+      margem: 10,
+      rotacao_permitida: true,
+      veio: "preservar"
+    },
+    render: {
+      engine: "three",
+      pipeline: "glb-compatível",
+      materiais: "pbr"
+    }
   };
 }
 
@@ -389,6 +420,9 @@ function render(project = buildProject(), parts = null) {
   draw3d(project);
   renderTable(currentParts);
   renderSummary(project, currentParts);
+  if (window.hybridViewer?.renderProject) {
+    window.hybridViewer.renderProject(project, currentParts);
+  }
 }
 
 function renderFlowSteps(steps, activeIds = []) {
@@ -491,9 +525,32 @@ async function generateBom() {
     if (!response.ok) throw new Error(data.error || "Não foi possível gerar o BOM");
 
     const parts = (data.results || []).flatMap((result) => result.parts || []);
-    render(project, parts.length ? parts : null);
-    document.getElementById("statusProjeto").textContent = "BOM gerado no servidor";
-    setStatus("Projeto e lista de peças gerados com sucesso.", "success");
+    let renderProject = project;
+    let renderParts = parts.length ? parts : null;
+    let hybridSceneReady = false;
+
+    try {
+      const sceneResponse = await fetch("/api/hybrid/scene", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ project, parts })
+      });
+      const sceneData = await sceneResponse.json();
+      if (!sceneResponse.ok) throw new Error(sceneData.error || "Não foi possível preparar a cena híbrida");
+      renderProject = sceneData.project || project;
+      renderParts = sceneData.parts || renderParts;
+      hybridSceneReady = true;
+      flowPayload.textContent = JSON.stringify({ bom: data, hybrid_scene: sceneData }, null, 2);
+    } catch (sceneError) {
+      flowPayload.textContent = JSON.stringify({ bom: data, hybrid_scene_error: sceneError.message }, null, 2);
+      setStatus("BOM gerado; cena híbrida indisponível, usando preview local.", "error");
+    }
+
+    render(renderProject, renderParts);
+    document.getElementById("statusProjeto").textContent = "BOM e cena híbrida gerados no servidor";
+    if (hybridSceneReady) {
+      setStatus("Projeto, lista de peças e cena híbrida gerados com sucesso.", "success");
+    }
     setApiStatus("API online", true);
   } catch (error) {
     setStatus(error.message, "error");
@@ -512,6 +569,27 @@ function downloadJson() {
   link.download = "projeto_moveis.json";
   link.click();
   URL.revokeObjectURL(url);
+}
+
+async function downloadGlb() {
+  if (!window.hybridViewer?.exportGlb) {
+    return setStatus("O viewer híbrido ainda está inicializando.", "error");
+  }
+
+  setStatus("Preparando arquivo GLB...", "loading");
+  try {
+    const result = await window.hybridViewer.exportGlb();
+    const blob = new Blob([result], { type: "model/gltf-binary" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "projeto_moveis.glb";
+    link.click();
+    URL.revokeObjectURL(url);
+    setStatus("Arquivo GLB exportado com sucesso.", "success");
+  } catch (error) {
+    setStatus(error.message || "Não foi possível exportar o GLB.", "error");
+  }
 }
 
 async function loadBaseProject() {
@@ -534,8 +612,13 @@ for (const field of Object.values(fields)) {
 
 document.getElementById("generateProject").addEventListener("click", generateBom);
 document.getElementById("exportJson").addEventListener("click", downloadJson);
+document.getElementById("exportGlb").addEventListener("click", downloadGlb);
 document.getElementById("loadBase").addEventListener("click", loadBaseProject);
 document.getElementById("simulateFlow").addEventListener("click", simulateFlow);
+
+window.addEventListener("hybrid-viewer-ready", () => {
+  if (currentProject) window.hybridViewer.renderProject(currentProject, currentParts);
+});
 
 render();
 loadFlowMap();

@@ -61,11 +61,15 @@
       "nodes": [
         { "type": "Webhook", "name": "Receber Spec Móvel", "config": {} },
         { "type": "Function", "name": "Validar Spec", "config": { "script": "// validar schema do móvel" } },
-        { "type": "HTTP Request", "name": "POST -> API Gerar BOM", "config": { "url": "{{ $env.API_URL }}/api/generate/bom", "method": "POST" } },
-        { "type": "HTTP Request", "name": "Trigger FreeCAD Job", "config": { "url": "{{ $env.API_URL }}/api/generate/freecad", "method": "POST" } },
-        { "type": "HTTP Request", "name": "Trigger SketchUp Job", "config": { "url": "{{ $env.API_URL }}/api/generate/sketchup", "method": "POST" } },
-        { "type": "HTTP Request", "name": "Salvar Cutlist", "config": { "url": "{{ $env.API_URL }}/api/cutlists", "method": "POST" } },
-        { "type": "Telegram", "name": "Notificar Cliente/Operador", "config": { "message": "Cutlist e modelo 3D gerados. Verifique na área de projetos." } }
+        { "type": "HTTP Request", "name": "Normalizar Projeto Híbrido", "config": { "url": "{{ $env.API_URL }}/api/projetos/normalizar", "method": "POST" } },
+        { "type": "HTTP Request", "name": "Preparar Cena 3D", "config": { "url": "{{ $env.API_URL }}/api/hybrid/scene", "method": "POST" } },
+        { "type": "HTTP Request", "name": "Gerar BOM", "config": { "url": "{{ $env.API_URL }}/api/generate/bom", "method": "POST", "optional": true } },
+        { "type": "HTTP Request", "name": "Trigger FreeCAD Job", "config": { "url": "{{ $env.API_URL }}/api/hybrid/jobs", "method": "POST", "body": { "type": "freecad", "project": "={{ $json.projeto }}" }, "optional": true } },
+        { "type": "HTTP Request", "name": "Trigger Blender Job", "config": { "url": "{{ $env.API_URL }}/api/hybrid/jobs", "method": "POST", "body": { "type": "blender", "project": "={{ $json.projeto }}" }, "optional": true } },
+        { "type": "HTTP Request", "name": "Trigger Nesting Job", "config": { "url": "{{ $env.API_URL }}/api/hybrid/jobs", "method": "POST", "body": { "type": "nesting", "project": "={{ $json.projeto }}" }, "optional": true } },
+        { "type": "HTTP Request", "name": "Trigger SketchUp Job", "config": { "url": "{{ $env.API_URL }}/api/generate/sketchup", "method": "POST", "optional": true } },
+        { "type": "HTTP Request", "name": "Salvar Cutlist", "config": { "url": "{{ $env.API_URL }}/api/cutlists", "method": "POST", "optional": true } },
+        { "type": "Telegram", "name": "Notificar Cliente/Operador", "config": { "message": "Projeto híbrido preparado; verifique a cena, os arquivos técnicos e os jobs." } }
       ]
     }
   ]
