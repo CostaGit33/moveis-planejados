@@ -70,6 +70,16 @@ async function main() {
   const scene = projectToScene(baseProject);
   assert(scene.nodes.some((node) => node.kind === 'wall'));
   assert(scene.nodes.some((node) => node.kind === 'module'));
+  const components = scene.nodes.filter((node) => node.kind === 'component');
+  assert(components.some((node) => node.role === 'side-left'));
+  assert(components.some((node) => node.role === 'side-right'));
+  assert(components.some((node) => node.role === 'top'));
+  assert(components.some((node) => node.role === 'base'));
+  assert(components.some((node) => node.role === 'back'));
+  assert.strictEqual(components.filter((node) => node.role === 'drawer-front').length, 4);
+  assert.strictEqual(components.filter((node) => node.role === 'drawer-side-left').length, 4);
+  assert.strictEqual(components.filter((node) => node.role === 'drawer-bottom').length, 4);
+  assert.strictEqual(components.filter((node) => node.role === 'foot').length, 4);
 
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'moveis-hybrid-'));
   const app = express();

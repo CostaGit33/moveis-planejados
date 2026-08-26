@@ -28,7 +28,7 @@ function colorFor(project, materialId) {
 
 function materialFor(project, materialId, options = {}) {
   return new THREE.MeshStandardMaterial({
-    color: colorFor(project, materialId),
+    color: options.color || colorFor(project, materialId),
     roughness: number(options.roughness, project?.materiais?.[materialId]?.pbr?.roughness ?? 0.62),
     metalness: number(options.metalness, project?.materiais?.[materialId]?.pbr?.metallic ?? 0),
     transparent: Boolean(options.transparent),
@@ -57,6 +57,40 @@ function board(project, parent, materialId, size, position, options = {}) {
   return mesh;
 }
 
+function handle(parent, position, length, orientation = 'horizontal') {
+  const geometry = new THREE.CylinderGeometry(0.004, 0.004, length, 12);
+  const material = new THREE.MeshStandardMaterial({ color: '#4b4038', roughness: 0.32, metalness: 0.72 });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(position.x, position.y, position.z);
+  mesh.rotation.z = orientation === 'horizontal' ? Math.PI / 2 : 0;
+  mesh.rotation.x = orientation === 'vertical' ? Math.PI / 2 : 0;
+  mesh.castShadow = true;
+  mesh.userData = { kind: 'hardware', orientation };
+  parent.add(mesh);
+  return mesh;
+}
+
+function foot(parent, position) {
+  const geometry = new THREE.CylinderGeometry(0.018, 0.022, 0.055, 16);
+  const material = new THREE.MeshStandardMaterial({ color: '#3f4547', roughness: 0.48, metalness: 0.56 });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(position.x, position.y, position.z);
+  mesh.castShadow = true;
+  mesh.userData = { kind: 'foot' };
+  parent.add(mesh);
+  return mesh;
+}
+
+function reveal(parent, position, size) {
+  const geometry = new THREE.BoxGeometry(size.x, size.y, size.z);
+  const material = new THREE.MeshBasicMaterial({ color: '#2b211b' });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(position.x, position.y, position.z);
+  mesh.userData = { kind: 'reveal' };
+  parent.add(mesh);
+  return mesh;
+}
+
 function createModule(project, module) {
   const group = new THREE.Group();
   const width = Math.max(number(module.largura, 600), 1) * MM;
@@ -67,9 +101,13 @@ function createModule(project, module) {
   const y = number(module.y, 0) * MM;
   const z = number(module.z, 0) * MM;
   const materialId = module.material || 'mdf_areia';
+  const frontColor = new THREE.Color(colorFor(project, materialId));
+  frontColor.offsetHSL(0, -0.02, 0.055);
+  const frontColorHex = `#${frontColor.getHexString()}`;
   const innerWidth = Math.max(width - thickness * 2, thickness);
   const innerDepth = Math.max(depth - thickness, thickness);
   const innerHeight = Math.max(height - thickness * 2, thickness);
+  const visualGap = Math.max(number(module.folga_porta, 6), 6) * MM;
 
   group.position.set(x, y, z);
   group.userData = { id: module.id, kind: 'module', type: module.tipo };
@@ -86,26 +124,62 @@ function createModule(project, module) {
     board(project, group, materialId, { x: innerWidth, y: innerDepth, z: thickness }, { x: width / 2, y: thickness + innerDepth / 2, z: shelfZ }, { kind: 'shelf' });
   }
 
-  const gap = 2 * MM;
+  const gap = visualGap;
   const doors = count(module.portas);
+  const drawers = count(module.gavetas);
+  const drawerZoneHeight = drawers > 0 && doors > 0 ? height * 0.38 : drawers > 0 ? height : 0;
+  const doorZoneStart = drawers > 0 && doors > 0 ? drawerZoneHeight : 0;
+  const doorZoneHeight = Math.max(height - doorZoneStart, thickness);
+
   if (doors > 0) {
     const doorWidth = Math.max((width - gap * (doors + 1)) / doors, thickness);
+    const doorHeight = Math.max(doorZoneHeight - gap * 2, thickness);
+    const doorZ = doorZoneStart + gap + doorHeight / 2;
+    for (let index = 0; index <= doors; index += 1) {
+      const separatorX = index === 0 ? gap / 2 : index === doors ? width - gap / 2 : gap + index * doorWidth + (index - 0.5) * gap;
+      reveal(group, { x: separatorX, y: -thickness / 2 - visualGap - 0.002, z: doorZ }, { x: gap * 0.72, y: 0.004, z: doorHeight });
+    }
     for (let index = 0; index < doors; index += 1) {
       const doorX = gap + doorWidth / 2 + index * (doorWidth + gap);
-      board(project, group, materialId, { x: doorWidth, y: thickness, z: Math.max(height - gap * 2, thickness) }, { x: doorX, y: -thickness / 2, z: height / 2 }, { kind: 'door' });
+      board(project, group, materialId, { x: doorWidth, y: thickness, z: doorHeight }, { x: doorX, y: -thickness / 2 - visualGap / 2, z: doorZ }, { kind: 'door', color: frontColorHex, edgeColor: '#3d281d' });
+      const handleX = index === 0 ? doorX + doorWidth * 0.78 : doorX + doorWidth * 0.22;
+      handle(group, { x: handleX, y: -thickness * 1.35, z: doorZ }, Math.min(0.12, doorHeight * 0.36), 'vertical');
     }
   }
 
-  const drawers = count(module.gavetas);
   if (drawers > 0) {
-    const frontHeight = Math.max((height - gap * (drawers + 1)) / drawers, thickness);
+    const drawerHeight = drawerZoneHeight || height;
+    const frontHeight = Math.max((drawerHeight - gap * (drawers + 1)) / drawers, thickness);
+    for (let index = 0; index <= drawers; index += 1) {
+      const separatorZ = index === 0 ? gap / 2 : index === drawers ? drawerHeight - gap / 2 : gap + index * frontHeight + (index - 0.5) * gap;
+      reveal(group, { x: width / 2, y: -thickness / 2 - visualGap - 0.002, z: separatorZ }, { x: Math.max(width - gap * 2, thickness), y: 0.004, z: gap * 0.72 });
+    }
+    if (doors > 0) {
+      reveal(group, { x: width / 2, y: -thickness / 2 - visualGap - 0.003, z: drawerZoneHeight }, { x: Math.max(width - gap * 2, thickness), y: 0.004, z: gap });
+    }
     for (let index = 0; index < drawers; index += 1) {
       const frontZ = gap + frontHeight / 2 + index * (frontHeight + gap);
-      board(project, group, materialId, { x: Math.max(width - gap * 2, thickness), y: thickness, z: frontHeight }, { x: width / 2, y: -thickness / 2, z: frontZ }, { kind: 'drawer-front' });
+      const frontWidth = Math.max(width - gap * 2, thickness);
+      board(project, group, materialId, { x: frontWidth, y: thickness, z: frontHeight }, { x: width / 2, y: -thickness / 2 - visualGap / 2, z: frontZ }, { kind: 'drawer-front', color: frontColorHex, edgeColor: '#3d281d' });
+      handle(group, { x: width / 2, y: -thickness * 1.35, z: frontZ }, Math.min(0.14, frontWidth * 0.24), 'horizontal');
+
+      const railDepth = Math.max(innerDepth * 0.86, thickness);
+      board(project, group, materialId, { x: thickness, y: railDepth, z: Math.max(frontHeight - thickness, thickness) }, { x: thickness * 1.5, y: thickness + railDepth / 2, z: frontZ }, { kind: 'drawer-side', edges: false });
+      board(project, group, materialId, { x: thickness, y: railDepth, z: Math.max(frontHeight - thickness, thickness) }, { x: width - thickness * 1.5, y: thickness + railDepth / 2, z: frontZ }, { kind: 'drawer-side', edges: false });
     }
   }
 
-  return { group, bounds: { x, y, z, width, depth, height } };
+  const isBaseModule = /inferior|balcao_pia|gaveteiro/i.test(String(module.tipo || ''));
+  if (isBaseModule) {
+    const footInset = Math.min(width * 0.16, 0.08);
+    const footZ = -0.028;
+    foot(group, { x: footInset, y: depth * 0.18, z: footZ });
+    foot(group, { x: width - footInset, y: depth * 0.18, z: footZ });
+    foot(group, { x: footInset, y: depth * 0.82, z: footZ });
+    foot(group, { x: width - footInset, y: depth * 0.82, z: footZ });
+  }
+
+  return { group, bounds: { x, y, z: Math.min(z - 0.06, z), width, depth, height: height + 0.06 } };
 }
 
 function addRoom(project, root) {
@@ -122,7 +196,7 @@ function addRoom(project, root) {
   root.add(floor);
 
   const grid = new THREE.GridHelper(Math.max(roomWidth, roomDepth), 16, '#b8aa9a', '#d8cec1');
-  grid.rotation.x = 0;
+  grid.rotation.x = Math.PI / 2;
   grid.position.set(roomWidth / 2, roomDepth / 2, 0);
   grid.material.transparent = true;
   grid.material.opacity = 0.35;
@@ -178,6 +252,7 @@ function init() {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('#f3efe8');
   const camera = new THREE.PerspectiveCamera(42, 1, 0.001, 100);
+  camera.up.set(0, 0, 1);
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.shadowMap.enabled = true;
@@ -190,6 +265,7 @@ function init() {
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.enablePan = true;
+  controls.screenSpacePanning = true;
   controls.minDistance = 0.25;
   controls.maxPolarAngle = Math.PI * 0.49;
 
@@ -229,8 +305,18 @@ function init() {
   const status = document.getElementById('hybridViewerStatus');
   if (status) status.textContent = 'Three.js · cena híbrida online';
 
-  window.hybridViewer = { renderProject, exportGlb };
+  window.hybridViewer = { renderProject, exportGlb, sceneStats };
   window.dispatchEvent(new CustomEvent('hybrid-viewer-ready'));
+}
+
+function sceneStats() {
+  const counts = {};
+  if (!state) return counts;
+  state.root.traverse((object) => {
+    const kind = object.userData?.kind;
+    if (kind) counts[kind] = (counts[kind] || 0) + 1;
+  });
+  return counts;
 }
 
 function exportGlb() {

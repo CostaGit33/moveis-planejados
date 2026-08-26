@@ -18,6 +18,11 @@ const DEFAULT_MATERIALS = {
     nome: 'MDF Carvalho',
     cor_rgb: [0.63, 0.43, 0.24],
     pbr: { base_color: '#a16d3a', roughness: 0.56, metallic: 0 }
+  },
+  ferragem_preta: {
+    nome: 'Ferragem preta',
+    cor_rgb: [0.05, 0.05, 0.05],
+    pbr: { base_color: '#1f2321', roughness: 0.32, metallic: 0.72 }
   }
 };
 
@@ -120,6 +125,95 @@ function enrichProject(input = {}) {
   };
 }
 
+function assemblyNodes(module) {
+  const width = module.largura;
+  const depth = module.profundidade;
+  const height = module.altura;
+  const thickness = module.espessura_chapa;
+  const gap = 2;
+  const nodes = [];
+  const innerWidth = Math.max(width - thickness * 2, thickness);
+  const innerDepth = Math.max(depth - thickness, thickness);
+  const add = (role, position, size, extra = {}) => {
+    nodes.push({
+      id: `${module.id}-${role}-${nodes.length + 1}`,
+      kind: 'component',
+      role,
+      module_id: module.id,
+      position_mm: {
+        x: module.x + position.x,
+        y: module.y + position.y,
+        z: module.z + position.z
+      },
+      size_mm: {
+        x: Math.max(size.x, 1),
+        y: Math.max(size.y, 1),
+        z: Math.max(size.z, 1)
+      },
+      material: extra.material || module.material,
+      ...(extra.quantity ? { quantity: extra.quantity } : {})
+    });
+  };
+
+  add('side-left', { x: thickness / 2, y: depth / 2, z: height / 2 }, { x: thickness, y: depth, z: height });
+  add('side-right', { x: width - thickness / 2, y: depth / 2, z: height / 2 }, { x: thickness, y: depth, z: height });
+  add('top', { x: width / 2, y: depth / 2, z: height - thickness / 2 }, { x: width, y: depth, z: thickness });
+  add('base', { x: width / 2, y: depth / 2, z: thickness / 2 }, { x: width, y: depth, z: thickness });
+  add('back', { x: width / 2, y: thickness / 2, z: height / 2 }, { x: width, y: thickness, z: Math.max(height - thickness, thickness) });
+
+  const shelves = module.prateleiras;
+  const innerHeight = Math.max(height - thickness * 2, thickness);
+  for (let index = 0; index < shelves; index += 1) {
+    add('shelf', { x: width / 2, y: thickness + innerDepth / 2, z: thickness + ((index + 1) * innerHeight) / (shelves + 1) }, { x: innerWidth, y: innerDepth, z: thickness });
+  }
+
+  const doors = module.portas;
+  const drawers = module.gavetas;
+  const drawerZoneHeight = drawers > 0 && doors > 0 ? height * 0.38 : drawers > 0 ? height : 0;
+  const doorZoneStart = drawers > 0 && doors > 0 ? drawerZoneHeight : 0;
+  const doorZoneHeight = Math.max(height - doorZoneStart, thickness);
+
+  if (doors > 0) {
+    const doorWidth = Math.max((width - gap * (doors + 1)) / doors, thickness);
+    const doorHeight = Math.max(doorZoneHeight - gap * 2, thickness);
+    const doorZ = doorZoneStart + gap + doorHeight / 2;
+    for (let index = 0; index < doors; index += 1) {
+      add('door', { x: gap + doorWidth / 2 + index * (doorWidth + gap), y: -thickness / 2 - gap / 2, z: doorZ }, { x: doorWidth, y: thickness, z: doorHeight });
+    }
+  }
+
+  if (drawers > 0) {
+    const drawerHeight = drawerZoneHeight || height;
+    const frontHeight = Math.max((drawerHeight - gap * (drawers + 1)) / drawers, thickness);
+    const frontWidth = Math.max(width - gap * 2, thickness);
+    const railDepth = Math.max(innerDepth * 0.86, thickness);
+    for (let index = 0; index < drawers; index += 1) {
+      const frontZ = gap + frontHeight / 2 + index * (frontHeight + gap);
+      add('drawer-front', { x: width / 2, y: -thickness / 2 - gap / 2, z: frontZ }, { x: frontWidth, y: thickness, z: frontHeight });
+      add('drawer-side-left', { x: thickness * 1.5, y: thickness + railDepth / 2, z: frontZ }, { x: thickness, y: railDepth, z: Math.max(frontHeight - thickness, thickness) });
+      add('drawer-side-right', { x: width - thickness * 1.5, y: thickness + railDepth / 2, z: frontZ }, { x: thickness, y: railDepth, z: Math.max(frontHeight - thickness, thickness) });
+      add('drawer-bottom', { x: width / 2, y: thickness + railDepth / 2, z: Math.max(frontZ - frontHeight / 2 + thickness / 2, thickness / 2) }, { x: Math.max(frontWidth - thickness * 2, thickness), y: Math.max(railDepth - thickness, thickness), z: thickness });
+    }
+  }
+
+  if (/inferior|balcao_pia|gaveteiro/i.test(String(module.tipo || ''))) {
+    const footSize = Math.min(width * 0.12, 80);
+    const footHeight = 60;
+    const insetX = Math.min(width * 0.16, 80);
+    const insetY = Math.min(depth * 0.18, 100);
+    for (const position of [
+      { x: insetX, y: insetY },
+      { x: width - insetX, y: insetY },
+      { x: insetX, y: depth - insetY },
+      { x: width - insetX, y: depth - insetY }
+    ]) {
+      add('foot', { x: position.x, y: position.y, z: -footHeight / 2 }, { x: footSize, y: footSize, z: footHeight }, { material: 'ferragem_preta' });
+    }
+  }
+
+  return nodes;
+}
+
 function projectToScene(projectInput, parts = []) {
   const project = enrichProject(projectInput);
   const nodes = [];
@@ -151,6 +245,7 @@ function projectToScene(projectInput, parts = []) {
         prateleiras: module.prateleiras
       }
     });
+    nodes.push(...assemblyNodes(module));
   }
 
   for (const part of Array.isArray(parts) ? parts : []) {
@@ -183,5 +278,6 @@ module.exports = {
   DEFAULT_MATERIALS,
   enrichProject,
   normalizeModule,
+  assemblyNodes,
   projectToScene
 };
