@@ -106,20 +106,26 @@ O fluxo deve tratar orçamento, render e exportação como saídas independentes
 
 ## Conversor de rascunho de módulo
 
-O conversor de rascunho trabalha em duas etapas e mantém a revisão humana antes da geração paramétrica:
+O conversor de rascunho trabalha em duas etapas e mantém a revisão humana antes da geração paramétrica. A versão atual também aceita imagem para gerar o draft intermediário automaticamente:
 
 ```text
 Webhook `/webhook/rascunho-modulo`
-  -> POST `/api/drafts/analyze`
+  -> imagem + pedido
+  -> POST `/api/drafts/analyze-image` (multipart, campo `image`)
   -> confirmar medidas e componentes
+  -> POST `/api/drafts/analyze` (revalidação JSON)
   -> POST `/api/drafts/convert`
   -> POST `/api/hybrid/scene`
   -> BOM e jobs técnicos opcionais
   -> Respond to Webhook
 ```
 
-`/api/drafts/analyze` recebe um draft com `source`, `calibration`, `evidence`, `assumptions` e `open_questions`. A análise classifica a família do módulo, conta evidências e gera uma proposta com perguntas pendentes. `/api/drafts/convert` só converte quando largura, profundidade, altura e espessura da chapa estão preenchidas; caso contrário, retorna HTTP 422 com `validation.critical_missing`.
+`/api/drafts/analyze-image` recebe `multipart/form-data` com o arquivo no campo `image` e um campo textual opcional `pedido`. O backend mantém a imagem somente em memória, chama um provedor OpenAI-compatible multimodal, extrai OCR, dimensões explicitamente escritas e componentes com caixas em pixels, e devolve `draft_payload` para revisão. As dimensões extraídas da imagem permanecem como sugestões; não são confirmadas automaticamente.
 
-Nesta primeira versão, o interpretador de imagem não é executado dentro da API. Uma etapa de visão/OCR deve produzir o JSON de evidências antes da chamada de análise. O arquivo `examples/rascunho-modulo-estante.json` é o fixture calibrado para testar o fluxo completo.
+Configure `VISION_API_BASE`, `VISION_API_KEY`, `VISION_MODEL` e opcionalmente `VISION_MAX_IMAGE_BYTES` no serviço da API. O status pode ser consultado em `GET /api/drafts/vision/status`. Sem as duas primeiras variáveis, a rota retorna HTTP 503 de forma explícita, sem tentar adivinhar parâmetros.
+
+`/api/drafts/analyze` continua recebendo um draft JSON com `source`, `calibration`, `evidence`, `assumptions` e `open_questions`. Depois da revisão, a UI aplica as quatro medidas confirmadas manualmente, revalida o draft e habilita a conversão. `/api/drafts/convert` só converte quando largura, profundidade, altura e espessura da chapa estão preenchidas; caso contrário, retorna HTTP 422 com `validation.critical_missing`.
+
+O arquivo `examples/rascunho-modulo-estante.json` continua sendo o fixture calibrado para testar o fluxo JSON sem depender do provedor visual. A imagem de produção segue o princípio `imagem -> evidências -> revisão -> projeto`, não uma conversão pixel-a-CAD sem supervisão.
 
 O conversor não remove nem substitui o workflow `gerar-moveis`. O orçamento continua disponível como etapa opcional e o banco não é alterado.

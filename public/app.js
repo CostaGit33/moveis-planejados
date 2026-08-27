@@ -29,9 +29,31 @@ const materials = {
   alvenaria_branca: { nome: "Alvenaria branca", color: "#e5e7eb", precoM2: 0 }
 };
 
+const evidenceKindLabels = {
+  unknown: "Não classificado",
+  side: "Lateral",
+  top: "Tampo",
+  base: "Base",
+  back: "Fundo",
+  shelf: "Prateleira",
+  vertical_divider: "Divisória vertical",
+  door: "Porta",
+  drawer: "Gaveta",
+  drawer_front: "Frente de gaveta",
+  hanger: "Cabideiro",
+  foot: "Pé",
+  mirror: "Espelho",
+  wall: "Parede",
+  window: "Janela",
+  door_opening: "Abertura de porta"
+};
+
+const evidenceKindOptions = Object.entries(evidenceKindLabels)
+  .filter(([kind]) => !["wall", "window", "door_opening", "mirror"].includes(kind));
+
 let currentProject = null;
 let currentParts = [];
-const draftState = { payload: null, analysis: null };
+const draftState = { payload: null, analysis: null, previewUrl: null };
 
 function numberValue(id) {
   const value = Number(fields[id]?.value || 0);
@@ -478,6 +500,51 @@ function setDraftStatus(text, type = '') {
   status.dataset.type = type;
 }
 
+function renderDraftEvidenceEditor(analysis) {
+  const editor = document.getElementById('draftEvidenceEditor');
+  const rows = document.getElementById('draftEvidenceRows');
+  if (!editor || !rows) return;
+  const evidence = analysis.draft?.evidence || [];
+  editor.hidden = evidence.length === 0;
+  rows.innerHTML = '';
+  for (const item of evidence) {
+    const row = document.createElement('div');
+    row.className = 'draft-evidence-row';
+    row.dataset.evidenceId = item.id;
+
+    const heading = document.createElement('span');
+    heading.className = 'draft-evidence-id';
+    heading.textContent = `${item.id} · ${Math.round(Number(item.confidence || 0) * 100)}%`;
+
+    const kind = document.createElement('select');
+    kind.className = 'draft-evidence-kind';
+    kind.setAttribute('aria-label', `Classificação de ${item.id}`);
+    for (const [value, label] of evidenceKindOptions) {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = label;
+      kind.appendChild(option);
+    }
+    kind.value = evidenceKindLabels[item.kind] ? item.kind : 'unknown';
+
+    const status = document.createElement('select');
+    status.className = 'draft-evidence-status';
+    status.setAttribute('aria-label', `Status de ${item.id}`);
+    for (const [value, label] of [['observed', 'Observado'], ['proposed', 'Proposto'], ['needs_confirmation', 'Confirmar'], ['rejected', 'Rejeitado']]) {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = label;
+      status.appendChild(option);
+    }
+    status.value = item.status || 'proposed';
+
+    const notes = document.createElement('small');
+    notes.textContent = item.notes || 'Sem observação adicional.';
+    row.append(heading, kind, status, notes);
+    rows.appendChild(row);
+  }
+}
+
 function renderDraftReview(analysis) {
   const review = document.getElementById('draftReview');
   const family = document.getElementById('draftFamily');
@@ -486,10 +553,15 @@ function renderDraftReview(analysis) {
   const questionCount = document.getElementById('draftQuestionsCount');
   const questions = document.getElementById('draftQuestions');
   const convertButton = document.getElementById('convertDraft');
+  const visionInfo = document.getElementById('draftVisionInfo');
+  const visionDescription = document.getElementById('draftVisionDescription');
+  const ocrText = document.getElementById('draftOcrText');
+  const applyMeasurementsButton = document.getElementById('applyDraftMeasurements');
   if (!review || !analysis) return;
 
   const proposal = analysis.draft?.proposal || {};
   const validation = analysis.validation || {};
+  renderDraftEvidenceEditor(analysis);
   const openQuestions = validation.critical_missing?.length
     ? [...(analysis.draft?.open_questions || []), `Campos críticos ausentes: ${validation.critical_missing.join(', ')}`]
     : (analysis.draft?.open_questions || []);
@@ -501,6 +573,27 @@ function renderDraftReview(analysis) {
     ? openQuestions.map((question) => `<li>${escapeHtml(question)}</li>`).join('')
     : '<li>Nenhuma questão crítica pendente.</li>';
   convertButton.disabled = Boolean(validation.critical_missing?.length || validation.errors?.length);
+  if (visionInfo) {
+    const vision = analysis.vision;
+    visionInfo.hidden = !vision;
+    if (vision) {
+      if (visionDescription) visionDescription.textContent = vision.description || 'Nenhuma descrição adicional foi retornada.';
+      if (ocrText) ocrText.textContent = (vision.ocr_text || []).join('\\n') || 'Nenhum texto legível foi encontrado.';
+      const dimensions = vision.dimensions || {};
+      for (const [id, key] of [
+        ['draftSuggestedWidth', 'width_mm'],
+        ['draftSuggestedDepth', 'depth_mm'],
+        ['draftSuggestedHeight', 'height_mm'],
+        ['draftSuggestedThickness', 'board_thickness_mm']
+      ]) {
+        const input = document.getElementById(id);
+        if (input) input.value = dimensions[key] ?? '';
+      }
+      if (applyMeasurementsButton) applyMeasurementsButton.disabled = false;
+    } else if (applyMeasurementsButton) {
+      applyMeasurementsButton.disabled = true;
+    }
+  }
   review.hidden = false;
   setDraftStatus(
     convertButton.disabled
@@ -510,7 +603,7 @@ function renderDraftReview(analysis) {
   );
 }
 
-async function analyzeDraftPayload(payload) {
+async function analyzeDraftPayload(payload, options = {}) {
   const response = await fetch('/api/drafts/analyze', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -519,14 +612,23 @@ async function analyzeDraftPayload(payload) {
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'Não foi possível analisar o rascunho.');
   draftState.payload = payload;
-  draftState.analysis = data;
-  renderDraftReview(data);
-  return data;
+  const preservedVision = options.preserveVision ? draftState.analysis?.vision : null;
+  draftState.analysis = preservedVision ? { ...data, vision: preservedVision } : data;
+  const visibleAnalysis = draftState.analysis;
+  if (visibleAnalysis.draft?.proposal?.module) {
+    applyDraftModuleToFields(
+      { draft: { module: visibleAnalysis.draft.proposal.module }, pedido: payload.pedido },
+      { clearMissing: Boolean(options.clearMissing) }
+    );
+  }
+  renderDraftReview(visibleAnalysis);
+  return visibleAnalysis;
 }
 
-function applyDraftModuleToFields(payload) {
+function applyDraftModuleToFields(payload, options = {}) {
   const module = payload.draft?.module;
   if (!module) return;
+  const clearMissing = Boolean(options.clearMissing);
   if (module.tipo) fields.moduloTipo.value = module.tipo;
   if (module.material) fields.material.value = module.material;
   for (const [field, key] of [
@@ -541,6 +643,7 @@ function applyDraftModuleToFields(payload) {
     ['moduloPrateleiras', 'prateleiras']
   ]) {
     if (module[key] !== undefined && module[key] !== null) fields[field].value = module[key];
+    else if (clearMissing && ['moduloLargura', 'moduloProfundidade', 'moduloAltura', 'chapa'].includes(field)) fields[field].value = '';
   }
   if (payload.ambiente) {
     for (const [field, key] of [
@@ -567,18 +670,123 @@ async function loadDraftFixture() {
   }
 }
 
+function isImageFile(file) {
+  return Boolean(file && (file.type?.startsWith('image/') || /\.(jpe?g|png|webp)$/i.test(file.name || '')));
+}
+
+function previewDraftFile(file) {
+  const previewBox = document.getElementById('draftImagePreview');
+  const preview = document.getElementById('draftPreview');
+  if (!previewBox || !preview) return;
+  if (draftState.previewUrl) URL.revokeObjectURL(draftState.previewUrl);
+  draftState.previewUrl = null;
+  if (isImageFile(file)) {
+    draftState.previewUrl = URL.createObjectURL(file);
+    preview.src = draftState.previewUrl;
+    previewBox.hidden = false;
+  } else {
+    preview.removeAttribute('src');
+    previewBox.hidden = true;
+  }
+}
+
+async function analyzeImageFromFile(file) {
+  const formData = new FormData();
+  formData.append('image', file, file.name);
+  formData.append('pedido', fields.pedido.value.trim());
+  setDraftStatus('Enviando imagem para interpretação visual...', 'loading');
+  const response = await fetch('/api/drafts/analyze-image', {
+    method: 'POST',
+    body: formData
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Não foi possível interpretar a imagem.');
+  if (!data.draft_payload) throw new Error('A API não retornou o draft intermediário para revisão.');
+  draftState.payload = data.draft_payload;
+  draftState.analysis = data;
+  applyDraftModuleToFields(data.draft_payload, { clearMissing: true });
+  renderDraftReview(data);
+  setDraftStatus('Imagem interpretada; confirme as medidas sugeridas antes de converter.', 'loading');
+  return data;
+}
+
 async function analyzeDraftFromFile() {
   const file = document.getElementById('draftFile')?.files?.[0];
-  if (!file) return setDraftStatus('Selecione um arquivo JSON de rascunho.', 'error');
-  if (!file.name.toLowerCase().endsWith('.json')) {
-    return setDraftStatus('A análise de imagem ainda precisa de um interpretador visual; nesta etapa carregue o JSON de evidências.', 'loading');
-  }
+  if (!file) return setDraftStatus('Selecione uma imagem ou JSON de rascunho.', 'error');
   try {
+    previewDraftFile(file);
+    if (isImageFile(file)) {
+      await analyzeImageFromFile(file);
+      return;
+    }
+    if (!file.name.toLowerCase().endsWith('.json') && file.type !== 'application/json') {
+      throw new Error('Formato não suportado. Use JPEG, PNG, WebP ou JSON de evidências.');
+    }
     const payload = JSON.parse(await file.text());
     applyDraftModuleToFields(payload);
     await analyzeDraftPayload(payload);
   } catch (error) {
-    setDraftStatus(error.message || 'JSON de rascunho inválido.', 'error');
+    setDraftStatus(error.message || 'Arquivo de rascunho inválido.', 'error');
+  }
+}
+
+async function applyDraftEvidence() {
+  if (!draftState.payload?.draft?.evidence?.length) return setDraftStatus('Analise uma imagem ou JSON com evidências antes de classificar componentes.', 'error');
+  const payload = JSON.parse(JSON.stringify(draftState.payload));
+  const rows = [...document.querySelectorAll('#draftEvidenceRows [data-evidence-id]')];
+  const revisions = new Map(rows.map((row) => [row.dataset.evidenceId, {
+    kind: row.querySelector('.draft-evidence-kind')?.value || 'unknown',
+    status: row.querySelector('.draft-evidence-status')?.value || 'proposed'
+  }]));
+  payload.draft.evidence = payload.draft.evidence.map((item) => ({
+    ...item,
+    ...(revisions.get(item.id) || {})
+  }));
+  if (payload.draft.module) {
+    delete payload.draft.module.componentes;
+    delete payload.draft.module.portas;
+    delete payload.draft.module.gavetas;
+    delete payload.draft.module.prateleiras;
+  }
+  try {
+    setDraftStatus('Recalculando família e parâmetros dos componentes...', 'loading');
+    await analyzeDraftPayload(payload, { preserveVision: true });
+    setDraftStatus('Componentes revisados e parâmetros atualizados.', 'success');
+  } catch (error) {
+    setDraftStatus(error.message, 'error');
+  }
+}
+
+async function applyDraftMeasurements() {
+  if (!draftState.payload?.draft?.module) return setDraftStatus('Analise uma imagem antes de confirmar medidas.', 'error');
+  const values = {
+    largura: Number(document.getElementById('draftSuggestedWidth')?.value),
+    profundidade: Number(document.getElementById('draftSuggestedDepth')?.value),
+    altura: Number(document.getElementById('draftSuggestedHeight')?.value),
+    espessura_chapa: Number(document.getElementById('draftSuggestedThickness')?.value)
+  };
+  if (!Object.values(values).every((value) => Number.isFinite(value) && value > 0)) {
+    return setDraftStatus('Informe largura, profundidade, altura e espessura válidas para confirmar.', 'error');
+  }
+  const payload = JSON.parse(JSON.stringify(draftState.payload));
+  payload.draft.module = { ...payload.draft.module, ...values };
+  payload.draft.calibration = {
+    status: 'calibrated',
+    reference_dimension: 'usuario_confirmacao',
+    reference_value_mm: values.largura,
+    scale_px_per_mm: null
+  };
+  payload.draft.assumptions = [
+    ...(payload.draft.assumptions || []),
+    'As quatro dimensões críticas foram confirmadas manualmente pelo usuário antes da conversão.'
+  ];
+  payload.draft.open_questions = (payload.draft.open_questions || []).filter((question) => !/largura|profundidade|altura|espessura/i.test(question));
+  try {
+    setDraftStatus('Validando as medidas confirmadas...', 'loading');
+    await analyzeDraftPayload(payload, { preserveVision: true });
+    setDraftStatus('Medidas confirmadas; proposta pronta para conversão.', 'success');
+  } catch (error) {
+    setDraftStatus(error.message, 'error');
   }
 }
 
@@ -757,6 +965,14 @@ document.getElementById("simulateFlow").addEventListener("click", simulateFlow);
 document.getElementById("analyzeDraft").addEventListener("click", analyzeDraftFromFile);
 document.getElementById("loadDraftFixture").addEventListener("click", loadDraftFixture);
 document.getElementById("convertDraft").addEventListener("click", convertDraft);
+document.getElementById("applyDraftMeasurements").addEventListener("click", applyDraftMeasurements);
+document.getElementById("applyDraftEvidence").addEventListener("click", applyDraftEvidence);
+document.getElementById("draftFile").addEventListener("change", (event) => {
+  const file = event.target.files?.[0];
+  previewDraftFile(file);
+  if (isImageFile(file)) setDraftStatus('Imagem pronta para análise visual.', 'loading');
+  else if (file) setDraftStatus('JSON pronto para análise.', 'loading');
+});
 
 window.addEventListener("hybrid-viewer-ready", () => {
   if (currentProject) window.hybridViewer.renderProject(currentProject, currentParts);

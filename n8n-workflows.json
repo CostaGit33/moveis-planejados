@@ -77,8 +77,9 @@
       "id": "converter-rascunho-modulo",
       "trigger": { "type": "webhook", "path": "/webhook/rascunho-modulo" },
       "nodes": [
-        { "type": "Webhook", "name": "Receber Rascunho", "config": {} },
-        { "type": "HTTP Request", "name": "Analisar Rascunho", "config": { "url": "{{ $env.API_URL }}/api/drafts/analyze", "method": "POST" } },
+        { "type": "Webhook", "name": "Receber Rascunho", "config": { "accept": "imagem_ou_json" } },
+        { "type": "HTTP Request", "name": "Interpretar Imagem", "config": { "url": "{{ $env.API_URL }}/api/drafts/analyze-image", "method": "POST", "content_type": "multipart/form-data", "optional_if_json_input": true } },
+        { "type": "HTTP Request", "name": "Analisar Rascunho JSON", "config": { "url": "{{ $env.API_URL }}/api/drafts/analyze", "method": "POST" } },
         { "type": "Manual Review", "name": "Confirmar Medidas e Componentes", "config": { "required_fields": ["largura", "profundidade", "altura", "espessura_chapa"], "approval": "required_before_convert" } },
         { "type": "HTTP Request", "name": "Converter Rascunho", "config": { "url": "{{ $env.API_URL }}/api/drafts/convert", "method": "POST" } },
         { "type": "HTTP Request", "name": "Preparar Cena Híbrida", "config": { "url": "{{ $env.API_URL }}/api/hybrid/scene", "method": "POST" } },

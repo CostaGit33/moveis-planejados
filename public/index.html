@@ -45,14 +45,17 @@
             <span>Proposta revisável</span>
           </div>
           <label>
-            Arquivo JSON do rascunho
-            <input id="draftFile" type="file" accept=".json,application/json">
+            Imagem ou JSON do rascunho
+            <input id="draftFile" type="file" accept=".json,application/json,image/jpeg,image/png,image/webp">
           </label>
           <div class="button-row">
             <button id="analyzeDraft" class="button button-secondary" type="button">Analisar rascunho</button>
             <button id="loadDraftFixture" class="button button-ghost" type="button">Carregar exemplo</button>
           </div>
-          <p class="helper-text" id="draftStatus">Use o exemplo para testar a conversão calibrada. Imagens exigem confirmação das medidas.</p>
+          <p class="helper-text" id="draftStatus">Use o exemplo para testar a conversão calibrada. Imagens geram sugestões e exigem confirmação das medidas.</p>
+          <div id="draftImagePreview" class="draft-image-preview" hidden>
+            <img id="draftPreview" alt="Pré-visualização do rascunho enviado">
+          </div>
           <div id="draftReview" class="draft-review" hidden>
             <div class="draft-review-head">
               <strong id="draftFamily">Família não identificada</strong>
@@ -63,6 +66,27 @@
               <span>Questões abertas <b id="draftQuestionsCount">0</b></span>
             </div>
             <ul id="draftQuestions"></ul>
+            <div id="draftEvidenceEditor" class="draft-evidence-editor" hidden>
+              <strong>Componentes reconhecidos</strong>
+              <p>Classifique as evidências visuais. A classificação atualiza portas, gavetas, prateleiras e a família do módulo sem inventar componentes.</p>
+              <div id="draftEvidenceRows"></div>
+              <button id="applyDraftEvidence" class="button button-secondary" type="button">Aplicar componentes revisados</button>
+            </div>
+            <div id="draftVisionInfo" class="draft-vision-info" hidden>
+              <strong>Leitura da imagem</strong>
+              <p id="draftVisionDescription"></p>
+              <div class="grid two">
+                <label>Largura sugerida<input id="draftSuggestedWidth" type="number" min="1" step="1"></label>
+                <label>Profundidade sugerida<input id="draftSuggestedDepth" type="number" min="1" step="1"></label>
+                <label>Altura sugerida<input id="draftSuggestedHeight" type="number" min="1" step="1"></label>
+                <label>Espessura sugerida<input id="draftSuggestedThickness" type="number" min="1" step="1"></label>
+              </div>
+              <button id="applyDraftMeasurements" class="button button-secondary" type="button" disabled>Confirmar e aplicar medidas</button>
+              <details>
+                <summary>Texto extraído por OCR</summary>
+                <pre id="draftOcrText"></pre>
+              </details>
+            </div>
             <button id="convertDraft" class="button button-primary" type="button" disabled>Converter para projeto</button>
           </div>
         </div>
