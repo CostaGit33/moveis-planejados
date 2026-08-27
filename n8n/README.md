@@ -124,9 +124,9 @@ Webhook `/webhook/rascunho-modulo`
   -> Respond to Webhook
 ```
 
-No nó **Webhook**, use `POST`, o caminho `rascunho-modulo`, a resposta **Using Respond to Webhook Node** e a opção **Binary Property** com o nome `image`. O webhook de produção do N8N deve ser publicado/ativado; a URL de teste só funciona enquanto o N8N está escutando o evento de teste.
+No nó **Webhook**, use `POST`, o caminho `rascunho-modulo`, a resposta **Using Respond to Webhook Node** e a opção **Binary Property** com o prefixo `image`. Nesta instalação, arquivos multipart repetidos são materializados como `image0`, `image1`, ...; portanto, o valor do nó OpenAI deve listar `image0,image1` quando duas imagens forem enviadas. O webhook de produção do N8N deve ser publicado/ativado; a URL de teste só funciona enquanto o N8N está escutando o evento de teste.
 
-No nó **OpenAI**, selecione a credencial já existente no N8N. Para obter saída estruturada, prefira `Resource: Text`, `Operation: Generate a Model Response`, uma mensagem `Text` com as instruções técnicas e uma mensagem `Image` usando o binário `image`. Se a sua versão do N8N mostrar a opção, selecione `Output Format: JSON Schema` e use o conteúdo de `n8n/draft-vision-schema.json`. Escolha um modelo da sua conta com capacidade de visão. Não use apenas o nó de texto que recebe uma string vazia e não conecte um `Structured Output Parser` sem primeiro fornecer o conteúdo produzido pelo nó OpenAI.
+No nó **OpenAI**, selecione a credencial já existente no N8N, `Resource: Image`, `Operation: Analyze Image`, modelo com visão, `Input Type: Binary File(s)` e `Input Data Field Name: image0,image1`. O nó v1 do N8N separa esse parâmetro por vírgula e envia cada propriedade binária como uma imagem independente [1]. O texto deve exigir somente JSON com `view`, `description`, `ocr_text`, `dimensions`, `components`, `assumptions` e `open_questions`. Nesta versão, a saída pode vir em `content[0].text` e cercada por fence Markdown; o Code node normaliza essa variação para `draft_payload`. Não use um Structured Output Parser sem primeiro fornecer o conteúdo produzido pelo nó OpenAI.
 
 As instruções da mensagem devem ser equivalentes a: analisar o desenho ou foto como rascunho de móvel planejado; retornar somente o schema; copiar OCR legível; preencher medidas apenas quando houver cota explicitamente escrita; usar `null` para medidas ausentes; registrar componentes visíveis com `kind`, `box_px`, `confidence`, `status` e `notes`; e nunca deduzir escala pela perspectiva. O arquivo `n8n/draft-vision-schema.json` é a fonte versionada do formato e `n8n/normalize-draft-vision.js` transforma as variações de saída do nó em `draft_payload`.
 
@@ -146,4 +146,11 @@ O arquivo `examples/rascunho-modulo-estante.json` continua sendo o fixture calib
 
 ### Versão antiga do N8N
 
-Se a instalação não tiver `Generate a Model Response` ou suporte a mensagem `Image`, use o nó `OpenAI -> Image -> Analyze Image` com a mesma credencial e o binário `image` para obter descrição/OCR. Nesse caso, a saída pode não ser JSON Schema; acrescente um segundo nó `OpenAI -> Text` ou um parser estruturado para transformar a descrição em exatamente o formato de `n8n/draft-vision-schema.json` antes do nó `Montar Draft de Evidências`. Não envie a descrição livre diretamente para `/api/drafts/analyze`, pois a API exige evidências estruturadas.
+> Na versão validada deste projeto, `Binary File(s)` aceita `image0,image1` como lista de propriedades binárias separadas por vírgula. Se uma versão antiga não aceitar essa lista, use nós de análise separados e combine os JSONs no Code node.
+
+Se a instalação não tiver suporte a múltiplas propriedades no campo binário, processe cada arquivo em um nó OpenAI separado e combine as respostas antes do nó `Montar Draft de Evidências`. Não envie a descrição livre diretamente para `/api/drafts/analyze`, pois a API exige evidências estruturadas.
+
+## Referências
+
+[1]: https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-langchain.openai/image-operations "N8N — Image operations"
+

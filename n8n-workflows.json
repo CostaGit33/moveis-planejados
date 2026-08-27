@@ -77,9 +77,9 @@
       "id": "converter-rascunho-modulo",
       "trigger": { "type": "webhook", "path": "/webhook/rascunho-modulo" },
       "nodes": [
-        { "type": "Webhook", "name": "Receber Rascunho", "config": { "accept": "imagem_ou_json", "http_method": "POST", "respond": "using_respond_to_webhook", "binary_property": "image" } },
-        { "type": "OpenAI", "name": "Interpretar Imagem com OpenAI", "config": { "resource": "text", "operation": "generate_model_response", "credential": "OpenAI existente no N8N", "model": "modelo_com_visao", "message_types": ["text", "image_binary"], "image_binary_property": "image", "output_format": "json_schema", "schema_file": "n8n/draft-vision-schema.json", "temperature": 0 } },
-        { "type": "Code", "name": "Montar Draft de Evidências", "config": { "source": "n8n/normalize-draft-vision.js", "output": "draft_payload", "preserve_binary_property": "image" } },
+        { "type": "Webhook", "name": "Receber Rascunho", "config": { "accept": "imagem_ou_json", "http_method": "POST", "respond": "using_respond_to_webhook", "binary_property_prefix": "image", "runtime_binary_properties": ["image0", "image1"] } },
+        { "type": "OpenAI", "name": "Interpretar Imagem com OpenAI", "config": { "resource": "image", "operation": "analyze_image", "credential": "OpenAI existente no N8N", "model": "GPT-4O", "input_type": "binary_file(s)", "image_binary_properties": ["image0", "image1"], "output_format": "json_free_validated_by_code", "schema_file": "n8n/draft-vision-schema.json", "temperature": 0 } },
+        { "type": "Code", "name": "Montar Draft de Evidências", "config": { "source": "n8n/normalize-draft-vision.js", "output": "draft_payload", "preserve_binary_properties": ["image0", "image1"], "flatten_view_components": true } },
         { "type": "HTTP Request", "name": "Analisar Rascunho JSON", "config": { "url": "{{ $env.API_URL }}/api/drafts/analyze", "method": "POST", "json_body": "={{ $json.draft_payload }}" } },
         { "type": "Manual Review", "name": "Confirmar Medidas e Componentes", "config": { "required_fields": ["largura", "profundidade", "altura", "espessura_chapa"], "approval": "required_before_convert", "classify_evidence": true } },
         { "type": "HTTP Request", "name": "Converter Rascunho", "config": { "url": "{{ $env.API_URL }}/api/drafts/convert", "method": "POST" } },
