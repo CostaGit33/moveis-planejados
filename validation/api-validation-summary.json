@@ -1,0 +1,40 @@
+{
+  "ok": true,
+  "errors": [],
+  "endpoints": {
+    "analyze": {
+      "http_status": 200,
+      "level": "calibrated"
+    },
+    "convert": {
+      "http_status": 200,
+      "module_count": 1
+    },
+    "scene": {
+      "http_status": 200,
+      "node_count": 34
+    },
+    "bom": {
+      "http_status": 200,
+      "line_count": 9,
+      "total_quantity": 20
+    }
+  },
+  "consistency": {
+    "module_dimensions_mm": {
+      "largura": 800,
+      "profundidade": 600,
+      "altura": 2200,
+      "espessura_chapa": 18,
+      "portas": 2,
+      "gavetas": 3
+    },
+    "composition": {
+      "portas": 2,
+      "gavetas": 3
+    },
+    "evidence_count": 4,
+    "parts_count": 9,
+    "scene_node_count": 34
+  }
+}

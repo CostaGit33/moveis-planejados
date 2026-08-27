@@ -1,0 +1,30 @@
+{
+  "ok": true,
+  "errors": [],
+  "validation": {
+    "level": "calibrated",
+    "critical_missing": [],
+    "warnings": [],
+    "errors": []
+  },
+  "module_count": 1,
+  "module_dimensions_mm": {
+    "largura": 800,
+    "profundidade": 600,
+    "altura": 2200,
+    "espessura_chapa": 18
+  },
+  "composition": {
+    "portas": 2,
+    "gavetas": 3,
+    "prateleiras": 1
+  },
+  "bom_line_count": 9,
+  "bom_total_quantity": 20,
+  "scene_node_count": 34,
+  "output_files": [
+    "confirmed-bom.json",
+    "confirmed-bom.csv",
+    "confirmed-scene.json"
+  ]
+}

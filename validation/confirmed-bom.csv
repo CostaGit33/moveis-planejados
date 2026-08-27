@@ -1,0 +1,10 @@
+nome,largura,altura,profundidade,espessura,quantidade,material
+Painel Traseiro,800,2182,18,18,1,mdf_areia
+Lateral,582,2200,18,18,2,mdf_areia
+Tampo,800,18,600,18,1,mdf_areia
+Base,800,18,600,18,1,mdf_areia
+Prateleira,764,18,582,18,1,mdf_areia
+Porta,397,2196,18,18,2,mdf_areia
+Frente de Gaveta,796,730.67,18,18,3,mdf_areia
+Lateral de Gaveta,564,712.6666666666666,18,18,6,mdf_areia
+Fundo de Gaveta,764,18,564,18,3,mdf_areia

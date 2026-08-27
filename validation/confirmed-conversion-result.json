@@ -1,0 +1,1161 @@
+{
+  "ok": true,
+  "draft": {
+    "id": "DRAFT-N8N-1787850649714",
+    "source": {
+      "type": "image",
+      "filename": "IMG-20260824-WA0028.jpg",
+      "view": "unknown",
+      "width_px": null,
+      "height_px": null
+    },
+    "calibration": {
+      "status": "calibrated",
+      "reference_dimension": "largura",
+      "reference_value_mm": 800,
+      "scale_px_per_mm": null
+    },
+    "evidence": [
+      {
+        "id": "VISION-EVID-001",
+        "kind": "shelf",
+        "box_px": {
+          "x": 200,
+          "y": 150,
+          "width": 300,
+          "height": 50
+        },
+        "confidence": 0.9,
+        "status": "observed",
+        "notes": "Prateleira superior com estrutura aparente."
+      },
+      {
+        "id": "VISION-EVID-002",
+        "kind": "drawer",
+        "box_px": {
+          "x": 150,
+          "y": 300,
+          "width": 100,
+          "height": 50
+        },
+        "confidence": 0.9,
+        "status": "observed",
+        "notes": "Conjunto de gavetas na lateral esquerda."
+      },
+      {
+        "id": "VISION-EVID-003",
+        "kind": "back",
+        "box_px": {
+          "x": 400,
+          "y": 100,
+          "width": 250,
+          "height": 500
+        },
+        "confidence": 0.8,
+        "status": "observed",
+        "notes": "Área central reservada para espelho."
+      },
+      {
+        "id": "VISION-EVID-004",
+        "kind": "foot",
+        "box_px": {
+          "x": 450,
+          "y": 600,
+          "width": 50,
+          "height": 50
+        },
+        "confidence": 0.7,
+        "status": "observed",
+        "notes": "Pé do móvel visível no lado direito."
+      }
+    ],
+    "assumptions": [
+      "A interpretação foi realizada no N8N usando a credencial OpenAI configurada no workflow.",
+      "Dimensões sem cota legível permanecem nulas e exigem confirmação humana.",
+      "A altura total do móvel não é clara no rascunho.",
+      "Largura, profundidade, altura e espessura de chapa foram confirmadas pelo usuário.",
+      "O módulo vertical foi confirmado como parte do ambiente em U; suas evidências continuam sendo as retornadas pelo N8N."
+    ],
+    "open_questions": [],
+    "proposal": {
+      "family": {
+        "tipo": "gaveteiro",
+        "nome": "Gaveteiro"
+      },
+      "module": {
+        "id": "MOD-001",
+        "tipo": "gaveteiro",
+        "nome": "Gaveteiro",
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "largura": 800,
+        "profundidade": 600,
+        "altura": 2200,
+        "espessura_chapa": 18,
+        "material": "mdf_areia",
+        "portas": 2,
+        "gavetas": 3,
+        "prateleiras": 1,
+        "componentes": [
+          {
+            "id": "MOD-001-COMP-001",
+            "tipo": "prateleira",
+            "origem_evidencia": "VISION-EVID-001",
+            "status": "proposta",
+            "confianca": 0.9,
+            "posicao": {
+              "x": null,
+              "y": null,
+              "z": null
+            },
+            "dimensoes": {
+              "largura": null,
+              "profundidade": null,
+              "altura": null
+            }
+          },
+          {
+            "id": "MOD-001-COMP-002",
+            "tipo": "gaveta",
+            "origem_evidencia": "VISION-EVID-002",
+            "status": "proposta",
+            "confianca": 0.9,
+            "posicao": {
+              "x": null,
+              "y": null,
+              "z": null
+            },
+            "dimensoes": {
+              "largura": null,
+              "profundidade": null,
+              "altura": null
+            }
+          },
+          {
+            "id": "MOD-001-COMP-003",
+            "tipo": "fundo",
+            "origem_evidencia": "VISION-EVID-003",
+            "status": "proposta",
+            "confianca": 0.8,
+            "posicao": {
+              "x": null,
+              "y": null,
+              "z": null
+            },
+            "dimensoes": {
+              "largura": null,
+              "profundidade": null,
+              "altura": null
+            }
+          },
+          {
+            "id": "MOD-001-COMP-004",
+            "tipo": "pe",
+            "origem_evidencia": "VISION-EVID-004",
+            "status": "proposta",
+            "confianca": 0.7,
+            "posicao": {
+              "x": null,
+              "y": null,
+              "z": null
+            },
+            "dimensoes": {
+              "largura": null,
+              "profundidade": null,
+              "altura": null
+            }
+          }
+        ],
+        "parametros": {
+          "modulo_vertical_faz_parte_do_ambiente_U": true,
+          "modulo_vertical_independente": false,
+          "medidas_origem": "confirmacao_usuario",
+          "composicao_origem": "confirmacao_usuario"
+        }
+      }
+    }
+  },
+  "validation": {
+    "level": "calibrated",
+    "critical_missing": [],
+    "warnings": [],
+    "errors": []
+  },
+  "project": {
+    "schema_version": "1.1",
+    "unidade": "mm",
+    "pedido": "Converter o módulo vertical confirmado como parte do ambiente em U.",
+    "ambiente": {
+      "nome": "Ambiente em U com módulo vertical",
+      "largura": 3200,
+      "profundidade": 800,
+      "pe_direito": 2700
+    },
+    "paredes": [],
+    "aberturas": [],
+    "modulos": [
+      {
+        "id": "MOD-001",
+        "tipo": "gaveteiro",
+        "nome": "Gaveteiro",
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "largura": 800,
+        "profundidade": 600,
+        "altura": 2200,
+        "espessura_chapa": 18,
+        "material": "mdf_areia",
+        "portas": 2,
+        "gavetas": 3,
+        "prateleiras": 1,
+        "componentes": [
+          {
+            "id": "MOD-001-COMP-001",
+            "tipo": "prateleira",
+            "origem_evidencia": "VISION-EVID-001",
+            "status": "proposta",
+            "confianca": 0.9,
+            "posicao": {
+              "x": null,
+              "y": null,
+              "z": null
+            },
+            "dimensoes": {
+              "largura": null,
+              "profundidade": null,
+              "altura": null
+            }
+          },
+          {
+            "id": "MOD-001-COMP-002",
+            "tipo": "gaveta",
+            "origem_evidencia": "VISION-EVID-002",
+            "status": "proposta",
+            "confianca": 0.9,
+            "posicao": {
+              "x": null,
+              "y": null,
+              "z": null
+            },
+            "dimensoes": {
+              "largura": null,
+              "profundidade": null,
+              "altura": null
+            }
+          },
+          {
+            "id": "MOD-001-COMP-003",
+            "tipo": "fundo",
+            "origem_evidencia": "VISION-EVID-003",
+            "status": "proposta",
+            "confianca": 0.8,
+            "posicao": {
+              "x": null,
+              "y": null,
+              "z": null
+            },
+            "dimensoes": {
+              "largura": null,
+              "profundidade": null,
+              "altura": null
+            }
+          },
+          {
+            "id": "MOD-001-COMP-004",
+            "tipo": "pe",
+            "origem_evidencia": "VISION-EVID-004",
+            "status": "proposta",
+            "confianca": 0.7,
+            "posicao": {
+              "x": null,
+              "y": null,
+              "z": null
+            },
+            "dimensoes": {
+              "largura": null,
+              "profundidade": null,
+              "altura": null
+            }
+          }
+        ],
+        "parametros": {
+          "modulo_vertical_faz_parte_do_ambiente_U": true,
+          "modulo_vertical_independente": false,
+          "medidas_origem": "confirmacao_usuario",
+          "composicao_origem": "confirmacao_usuario"
+        }
+      }
+    ],
+    "draft_id": "DRAFT-N8N-1787850649714",
+    "materiais": {
+      "alvenaria_branca": {
+        "nome": "Alvenaria branca",
+        "cor_rgb": [
+          0.92,
+          0.92,
+          0.88
+        ],
+        "pbr": {
+          "base_color": "#eae8df",
+          "roughness": 0.88,
+          "metallic": 0
+        }
+      },
+      "mdf_areia": {
+        "nome": "MDF Areia",
+        "cor_rgb": [
+          0.72,
+          0.58,
+          0.42
+        ],
+        "pbr": {
+          "base_color": "#b8895d",
+          "roughness": 0.62,
+          "metallic": 0
+        }
+      },
+      "mdf_cinza": {
+        "nome": "MDF Cinza",
+        "cor_rgb": [
+          0.42,
+          0.45,
+          0.48
+        ],
+        "pbr": {
+          "base_color": "#6b7280",
+          "roughness": 0.62,
+          "metallic": 0
+        }
+      },
+      "mdf_carvalho": {
+        "nome": "MDF Carvalho",
+        "cor_rgb": [
+          0.63,
+          0.43,
+          0.24
+        ],
+        "pbr": {
+          "base_color": "#a16d3a",
+          "roughness": 0.56,
+          "metallic": 0
+        }
+      },
+      "ferragem_preta": {
+        "nome": "Ferragem preta",
+        "cor_rgb": [
+          0.05,
+          0.05,
+          0.05
+        ],
+        "pbr": {
+          "base_color": "#1f2321",
+          "roughness": 0.32,
+          "metallic": 0.72
+        }
+      }
+    },
+    "fabricacao": {
+      "unidade": "mm",
+      "kerf": 3,
+      "margem": 10,
+      "rotacao_permitida": true,
+      "veio": "preservar"
+    },
+    "render": {
+      "engine": "three",
+      "pipeline": "glb-compatível",
+      "materiais": "pbr"
+    }
+  },
+  "parts": [
+    {
+      "nome": "Painel Traseiro",
+      "largura": 800,
+      "profundidade": 18,
+      "altura": 2182,
+      "espessura": 18,
+      "quantidade": 1,
+      "material": "mdf_areia",
+      "id": "MOD-001-PECA-01",
+      "modulo_id": "MOD-001",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "nome": "Lateral",
+      "largura": 582,
+      "profundidade": 18,
+      "altura": 2200,
+      "espessura": 18,
+      "quantidade": 2,
+      "material": "mdf_areia",
+      "id": "MOD-001-PECA-02",
+      "modulo_id": "MOD-001",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "nome": "Tampo",
+      "largura": 800,
+      "profundidade": 600,
+      "altura": 18,
+      "espessura": 18,
+      "quantidade": 1,
+      "material": "mdf_areia",
+      "id": "MOD-001-PECA-03",
+      "modulo_id": "MOD-001",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "nome": "Base",
+      "largura": 800,
+      "profundidade": 600,
+      "altura": 18,
+      "espessura": 18,
+      "quantidade": 1,
+      "material": "mdf_areia",
+      "id": "MOD-001-PECA-04",
+      "modulo_id": "MOD-001",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "nome": "Prateleira",
+      "largura": 764,
+      "profundidade": 582,
+      "altura": 18,
+      "espessura": 18,
+      "quantidade": 1,
+      "material": "mdf_areia",
+      "id": "MOD-001-PECA-05",
+      "modulo_id": "MOD-001",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "nome": "Porta",
+      "largura": 397,
+      "profundidade": 18,
+      "altura": 2196,
+      "espessura": 18,
+      "quantidade": 2,
+      "material": "mdf_areia",
+      "id": "MOD-001-PECA-06",
+      "modulo_id": "MOD-001",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "nome": "Frente de Gaveta",
+      "largura": 796,
+      "profundidade": 18,
+      "altura": 730.67,
+      "espessura": 18,
+      "quantidade": 3,
+      "material": "mdf_areia",
+      "id": "MOD-001-PECA-07",
+      "modulo_id": "MOD-001",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "nome": "Lateral de Gaveta",
+      "largura": 564,
+      "profundidade": 18,
+      "altura": 712.6666666666666,
+      "espessura": 18,
+      "quantidade": 6,
+      "material": "mdf_areia",
+      "id": "MOD-001-PECA-08",
+      "modulo_id": "MOD-001",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "nome": "Fundo de Gaveta",
+      "largura": 764,
+      "profundidade": 564,
+      "altura": 18,
+      "espessura": 18,
+      "quantidade": 3,
+      "material": "mdf_areia",
+      "id": "MOD-001-PECA-09",
+      "modulo_id": "MOD-001",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    }
+  ],
+  "scene": {
+    "schema_version": "1.1",
+    "unidade": "mm",
+    "coordinate_system": "x=largura,y=profundidade,z=altura",
+    "ambiente": {
+      "nome": "Ambiente em U com módulo vertical",
+      "largura": 3200,
+      "profundidade": 800,
+      "pe_direito": 2700
+    },
+    "materials": {
+      "alvenaria_branca": {
+        "nome": "Alvenaria branca",
+        "cor_rgb": [
+          0.92,
+          0.92,
+          0.88
+        ],
+        "pbr": {
+          "base_color": "#eae8df",
+          "roughness": 0.88,
+          "metallic": 0
+        }
+      },
+      "mdf_areia": {
+        "nome": "MDF Areia",
+        "cor_rgb": [
+          0.72,
+          0.58,
+          0.42
+        ],
+        "pbr": {
+          "base_color": "#b8895d",
+          "roughness": 0.62,
+          "metallic": 0
+        }
+      },
+      "mdf_cinza": {
+        "nome": "MDF Cinza",
+        "cor_rgb": [
+          0.42,
+          0.45,
+          0.48
+        ],
+        "pbr": {
+          "base_color": "#6b7280",
+          "roughness": 0.62,
+          "metallic": 0
+        }
+      },
+      "mdf_carvalho": {
+        "nome": "MDF Carvalho",
+        "cor_rgb": [
+          0.63,
+          0.43,
+          0.24
+        ],
+        "pbr": {
+          "base_color": "#a16d3a",
+          "roughness": 0.56,
+          "metallic": 0
+        }
+      },
+      "ferragem_preta": {
+        "nome": "Ferragem preta",
+        "cor_rgb": [
+          0.05,
+          0.05,
+          0.05
+        ],
+        "pbr": {
+          "base_color": "#1f2321",
+          "roughness": 0.32,
+          "metallic": 0.72
+        }
+      }
+    },
+    "nodes": [
+      {
+        "id": "MOD-001",
+        "kind": "module",
+        "position_mm": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "size_mm": {
+          "x": 800,
+          "y": 600,
+          "z": 2200
+        },
+        "material": "mdf_areia",
+        "composition": {
+          "portas": 2,
+          "gavetas": 3,
+          "prateleiras": 1
+        }
+      },
+      {
+        "id": "MOD-001-side-left-1",
+        "kind": "component",
+        "role": "side-left",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 9,
+          "y": 300,
+          "z": 1100
+        },
+        "size_mm": {
+          "x": 18,
+          "y": 600,
+          "z": 2200
+        },
+        "material": "mdf_areia"
+      },
+      {
+        "id": "MOD-001-side-right-2",
+        "kind": "component",
+        "role": "side-right",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 791,
+          "y": 300,
+          "z": 1100
+        },
+        "size_mm": {
+          "x": 18,
+          "y": 600,
+          "z": 2200
+        },
+        "material": "mdf_areia"
+      },
+      {
+        "id": "MOD-001-top-3",
+        "kind": "component",
+        "role": "top",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 400,
+          "y": 300,
+          "z": 2191
+        },
+        "size_mm": {
+          "x": 800,
+          "y": 600,
+          "z": 18
+        },
+        "material": "mdf_areia"
+      },
+      {
+        "id": "MOD-001-base-4",
+        "kind": "component",
+        "role": "base",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 400,
+          "y": 300,
+          "z": 9
+        },
+        "size_mm": {
+          "x": 800,
+          "y": 600,
+          "z": 18
+        },
+        "material": "mdf_areia"
+      },
+      {
+        "id": "MOD-001-back-5",
+        "kind": "component",
+        "role": "back",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 400,
+          "y": 591,
+          "z": 1100
+        },
+        "size_mm": {
+          "x": 800,
+          "y": 18,
+          "z": 2182
+        },
+        "material": "mdf_areia"
+      },
+      {
+        "id": "MOD-001-shelf-6",
+        "kind": "component",
+        "role": "shelf",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 400,
+          "y": 309,
+          "z": 1100
+        },
+        "size_mm": {
+          "x": 764,
+          "y": 582,
+          "z": 18
+        },
+        "material": "mdf_areia"
+      },
+      {
+        "id": "MOD-001-door-7",
+        "kind": "component",
+        "role": "door",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 200.5,
+          "y": -10,
+          "z": 1518
+        },
+        "size_mm": {
+          "x": 397,
+          "y": 18,
+          "z": 1360
+        },
+        "material": "mdf_areia"
+      },
+      {
+        "id": "MOD-001-door-8",
+        "kind": "component",
+        "role": "door",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 599.5,
+          "y": -10,
+          "z": 1518
+        },
+        "size_mm": {
+          "x": 397,
+          "y": 18,
+          "z": 1360
+        },
+        "material": "mdf_areia"
+      },
+      {
+        "id": "MOD-001-drawer-front-9",
+        "kind": "component",
+        "role": "drawer-front",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 400,
+          "y": -10,
+          "z": 140
+        },
+        "size_mm": {
+          "x": 796,
+          "y": 18,
+          "z": 276
+        },
+        "material": "mdf_areia"
+      },
+      {
+        "id": "MOD-001-drawer-side-left-10",
+        "kind": "component",
+        "role": "drawer-side-left",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 27,
+          "y": 268.26,
+          "z": 140
+        },
+        "size_mm": {
+          "x": 18,
+          "y": 500.52,
+          "z": 258
+        },
+        "material": "mdf_areia"
+      },
+      {
+        "id": "MOD-001-drawer-side-right-11",
+        "kind": "component",
+        "role": "drawer-side-right",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 773,
+          "y": 268.26,
+          "z": 140
+        },
+        "size_mm": {
+          "x": 18,
+          "y": 500.52,
+          "z": 258
+        },
+        "material": "mdf_areia"
+      },
+      {
+        "id": "MOD-001-drawer-bottom-12",
+        "kind": "component",
+        "role": "drawer-bottom",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 400,
+          "y": 268.26,
+          "z": 11
+        },
+        "size_mm": {
+          "x": 760,
+          "y": 482.52,
+          "z": 18
+        },
+        "material": "mdf_areia"
+      },
+      {
+        "id": "MOD-001-drawer-front-13",
+        "kind": "component",
+        "role": "drawer-front",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 400,
+          "y": -10,
+          "z": 418
+        },
+        "size_mm": {
+          "x": 796,
+          "y": 18,
+          "z": 276
+        },
+        "material": "mdf_areia"
+      },
+      {
+        "id": "MOD-001-drawer-side-left-14",
+        "kind": "component",
+        "role": "drawer-side-left",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 27,
+          "y": 268.26,
+          "z": 418
+        },
+        "size_mm": {
+          "x": 18,
+          "y": 500.52,
+          "z": 258
+        },
+        "material": "mdf_areia"
+      },
+      {
+        "id": "MOD-001-drawer-side-right-15",
+        "kind": "component",
+        "role": "drawer-side-right",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 773,
+          "y": 268.26,
+          "z": 418
+        },
+        "size_mm": {
+          "x": 18,
+          "y": 500.52,
+          "z": 258
+        },
+        "material": "mdf_areia"
+      },
+      {
+        "id": "MOD-001-drawer-bottom-16",
+        "kind": "component",
+        "role": "drawer-bottom",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 400,
+          "y": 268.26,
+          "z": 289
+        },
+        "size_mm": {
+          "x": 760,
+          "y": 482.52,
+          "z": 18
+        },
+        "material": "mdf_areia"
+      },
+      {
+        "id": "MOD-001-drawer-front-17",
+        "kind": "component",
+        "role": "drawer-front",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 400,
+          "y": -10,
+          "z": 696
+        },
+        "size_mm": {
+          "x": 796,
+          "y": 18,
+          "z": 276
+        },
+        "material": "mdf_areia"
+      },
+      {
+        "id": "MOD-001-drawer-side-left-18",
+        "kind": "component",
+        "role": "drawer-side-left",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 27,
+          "y": 268.26,
+          "z": 696
+        },
+        "size_mm": {
+          "x": 18,
+          "y": 500.52,
+          "z": 258
+        },
+        "material": "mdf_areia"
+      },
+      {
+        "id": "MOD-001-drawer-side-right-19",
+        "kind": "component",
+        "role": "drawer-side-right",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 773,
+          "y": 268.26,
+          "z": 696
+        },
+        "size_mm": {
+          "x": 18,
+          "y": 500.52,
+          "z": 258
+        },
+        "material": "mdf_areia"
+      },
+      {
+        "id": "MOD-001-drawer-bottom-20",
+        "kind": "component",
+        "role": "drawer-bottom",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 400,
+          "y": 268.26,
+          "z": 567
+        },
+        "size_mm": {
+          "x": 760,
+          "y": 482.52,
+          "z": 18
+        },
+        "material": "mdf_areia"
+      },
+      {
+        "id": "MOD-001-foot-21",
+        "kind": "component",
+        "role": "foot",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 80,
+          "y": 100,
+          "z": -30
+        },
+        "size_mm": {
+          "x": 80,
+          "y": 80,
+          "z": 60
+        },
+        "material": "ferragem_preta"
+      },
+      {
+        "id": "MOD-001-foot-22",
+        "kind": "component",
+        "role": "foot",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 720,
+          "y": 100,
+          "z": -30
+        },
+        "size_mm": {
+          "x": 80,
+          "y": 80,
+          "z": 60
+        },
+        "material": "ferragem_preta"
+      },
+      {
+        "id": "MOD-001-foot-23",
+        "kind": "component",
+        "role": "foot",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 80,
+          "y": 500,
+          "z": -30
+        },
+        "size_mm": {
+          "x": 80,
+          "y": 80,
+          "z": 60
+        },
+        "material": "ferragem_preta"
+      },
+      {
+        "id": "MOD-001-foot-24",
+        "kind": "component",
+        "role": "foot",
+        "module_id": "MOD-001",
+        "position_mm": {
+          "x": 720,
+          "y": 500,
+          "z": -30
+        },
+        "size_mm": {
+          "x": 80,
+          "y": 80,
+          "z": 60
+        },
+        "material": "ferragem_preta"
+      },
+      {
+        "id": "MOD-001-PECA-01",
+        "kind": "part",
+        "position_mm": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "size_mm": {
+          "x": 800,
+          "y": 18,
+          "z": 2182
+        },
+        "quantity": 1,
+        "material": "mdf_areia",
+        "module_id": "MOD-001"
+      },
+      {
+        "id": "MOD-001-PECA-02",
+        "kind": "part",
+        "position_mm": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "size_mm": {
+          "x": 582,
+          "y": 18,
+          "z": 2200
+        },
+        "quantity": 2,
+        "material": "mdf_areia",
+        "module_id": "MOD-001"
+      },
+      {
+        "id": "MOD-001-PECA-03",
+        "kind": "part",
+        "position_mm": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "size_mm": {
+          "x": 800,
+          "y": 600,
+          "z": 18
+        },
+        "quantity": 1,
+        "material": "mdf_areia",
+        "module_id": "MOD-001"
+      },
+      {
+        "id": "MOD-001-PECA-04",
+        "kind": "part",
+        "position_mm": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "size_mm": {
+          "x": 800,
+          "y": 600,
+          "z": 18
+        },
+        "quantity": 1,
+        "material": "mdf_areia",
+        "module_id": "MOD-001"
+      },
+      {
+        "id": "MOD-001-PECA-05",
+        "kind": "part",
+        "position_mm": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "size_mm": {
+          "x": 764,
+          "y": 582,
+          "z": 18
+        },
+        "quantity": 1,
+        "material": "mdf_areia",
+        "module_id": "MOD-001"
+      },
+      {
+        "id": "MOD-001-PECA-06",
+        "kind": "part",
+        "position_mm": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "size_mm": {
+          "x": 397,
+          "y": 18,
+          "z": 2196
+        },
+        "quantity": 2,
+        "material": "mdf_areia",
+        "module_id": "MOD-001"
+      },
+      {
+        "id": "MOD-001-PECA-07",
+        "kind": "part",
+        "position_mm": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "size_mm": {
+          "x": 796,
+          "y": 18,
+          "z": 730.67
+        },
+        "quantity": 3,
+        "material": "mdf_areia",
+        "module_id": "MOD-001"
+      },
+      {
+        "id": "MOD-001-PECA-08",
+        "kind": "part",
+        "position_mm": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "size_mm": {
+          "x": 564,
+          "y": 18,
+          "z": 712.6666666666666
+        },
+        "quantity": 6,
+        "material": "mdf_areia",
+        "module_id": "MOD-001"
+      },
+      {
+        "id": "MOD-001-PECA-09",
+        "kind": "part",
+        "position_mm": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "size_mm": {
+          "x": 764,
+          "y": 564,
+          "z": 18
+        },
+        "quantity": 3,
+        "material": "mdf_areia",
+        "module_id": "MOD-001"
+      }
+    ]
+  }
+}
