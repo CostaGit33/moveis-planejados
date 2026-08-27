@@ -192,6 +192,9 @@ function analyzeDraft(input = {}) {
   const family = inferFamily(evidence);
   const module = normalizeModuleInput(root.module || root.proposal?.module, evidence);
   const assumptions = Array.isArray(root.assumptions) ? root.assumptions.map(String) : [];
+  const visualMeasurements = asObject(root.visual_measurements);
+  const ocrText = Array.isArray(root.ocr_text) ? root.ocr_text.map(String).filter(Boolean) : [];
+  const description = root.description ? String(root.description).trim() : '';
   const openQuestions = [
     ...(Array.isArray(root.open_questions) ? root.open_questions.map(String) : []),
     ...missingQuestions(module, calibration, evidence)
@@ -209,6 +212,16 @@ function analyzeDraft(input = {}) {
       id: root.id || 'DRAFT-001',
       source,
       calibration,
+      description,
+      ocr_text: ocrText,
+      visual_measurements: {
+        width_mm: asNumberOrNull(visualMeasurements.width_mm),
+        depth_mm: asNumberOrNull(visualMeasurements.depth_mm),
+        height_mm: asNumberOrNull(visualMeasurements.height_mm),
+        board_thickness_mm: asNumberOrNull(visualMeasurements.board_thickness_mm),
+        reference_dimension: visualMeasurements.reference_dimension ? String(visualMeasurements.reference_dimension) : null,
+        reference_value_mm: asNumberOrNull(visualMeasurements.reference_value_mm)
+      },
       evidence,
       assumptions,
       open_questions: openQuestions,

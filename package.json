@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node api/server.js",
     "check": "node --check api/server.js && node --check api/db.js && node --check api/mvp-routes.js && node --check api/n8n-routes.js && node --check api/hybrid-routes.js && node --check api/draft-routes.js && node --check hybrid-contract.js && node --check draft-converter.js && node --check draft-vision.js && node --check furniture-builder.js && node --check server.js && node --check public/app.js && node --check public/hybrid-viewer.mjs && node --check n8n/normalize-draft-vision.js",
-    "test": "node test/furniture-builder.test.js && node test/mvp-routes.test.js && node test/hybrid.test.js && node test/draft-converter.test.js && node test/n8n-normalize-draft-vision.test.js",
+    "test": "node test/furniture-builder.test.js && node test/mvp-routes.test.js && node test/hybrid.test.js && node test/draft-converter.test.js && node test/n8n-normalize-draft-vision.test.js && node test/n8n-proxy.test.js",
     "gerar:poc": "python gerar_poc.py"
   },
   "dependencies": {

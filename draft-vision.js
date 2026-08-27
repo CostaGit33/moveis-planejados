@@ -18,6 +18,8 @@ const ALLOWED_KINDS = new Set([
 ]);
 const DEFAULT_MODEL = 'gemini-3-flash-preview';
 const DEFAULT_MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const DEFAULT_N8N_DRAFT_WEBHOOK_URL = 'https://webhook.novaagencian8n.online/webhook/rascunho-modulo';
+const DEFAULT_N8N_DRAFT_TIMEOUT_MS = 90_000;
 
 const VISION_SCHEMA = {
   type: 'object',
@@ -122,6 +124,16 @@ function visionStatus(env = process.env) {
     enabled: config.enabled,
     model: config.model,
     max_image_bytes: config.maxImageBytes
+  };
+}
+
+function getN8nWebhookConfig(env = process.env) {
+  const webhookUrl = String(env.N8N_DRAFT_WEBHOOK_URL || DEFAULT_N8N_DRAFT_WEBHOOK_URL).trim();
+  const timeout = Number(env.N8N_DRAFT_TIMEOUT_MS || DEFAULT_N8N_DRAFT_TIMEOUT_MS);
+  return {
+    enabled: /^https?:\/\//i.test(webhookUrl),
+    webhookUrl,
+    timeoutMs: Number.isFinite(timeout) && timeout > 0 ? timeout : DEFAULT_N8N_DRAFT_TIMEOUT_MS
   };
 }
 
@@ -374,6 +386,7 @@ module.exports = {
   VISION_SCHEMA,
   getVisionConfig,
   visionStatus,
+  getN8nWebhookConfig,
   assertImageFile,
   callVisionModel,
   buildDraftPayloadFromVision,

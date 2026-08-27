@@ -46,13 +46,13 @@
           </div>
           <label>
             Imagem ou JSON do rascunho
-            <input id="draftFile" type="file" accept=".json,application/json,image/jpeg,image/png,image/webp">
+            <input id="draftFile" type="file" accept=".json,application/json,image/jpeg,image/png,image/webp" multiple>
           </label>
           <div class="button-row">
             <button id="analyzeDraft" class="button button-secondary" type="button">Analisar rascunho</button>
             <button id="loadDraftFixture" class="button button-ghost" type="button">Carregar exemplo</button>
           </div>
-          <p class="helper-text" id="draftStatus">Use o exemplo para testar a conversão calibrada. Imagens geram sugestões e exigem confirmação das medidas.</p>
+          <p class="helper-text" id="draftStatus">Uma ou duas imagens serão enviadas ao workflow N8N para gerar evidências revisáveis. As medidas e componentes precisam ser confirmados antes da conversão.</p>
           <div id="draftImagePreview" class="draft-image-preview" hidden>
             <img id="draftPreview" alt="Pré-visualização do rascunho enviado">
           </div>

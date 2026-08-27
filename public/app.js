@@ -500,6 +500,17 @@ function setDraftStatus(text, type = '') {
   status.dataset.type = type;
 }
 
+async function loadDraftN8nStatus() {
+  try {
+    const response = await fetch('/api/drafts/n8n/status');
+    const data = await response.json();
+    if (!response.ok || !data.enabled) throw new Error('Workflow N8N indisponível.');
+    setDraftStatus('Analisador visual conectado ao N8N. Selecione uma imagem para começar.', 'success');
+  } catch (error) {
+    setDraftStatus('Não foi possível conectar ao analisador visual N8N.', 'error');
+  }
+}
+
 function renderDraftEvidenceEditor(analysis) {
   const editor = document.getElementById('draftEvidenceEditor');
   const rows = document.getElementById('draftEvidenceRows');
@@ -690,35 +701,42 @@ function previewDraftFile(file) {
   }
 }
 
-async function analyzeImageFromFile(file) {
+async function analyzeImageFiles(files) {
+  const selectedFiles = files.filter(isImageFile).slice(0, 2);
+  if (!selectedFiles.length) throw new Error('Selecione uma imagem JPEG, PNG ou WebP.');
   const formData = new FormData();
-  formData.append('image', file, file.name);
+  for (const file of selectedFiles) formData.append('image', file, file.name);
   formData.append('pedido', fields.pedido.value.trim());
-  setDraftStatus('Enviando imagem para interpretação visual...', 'loading');
-  const response = await fetch('/api/drafts/analyze-image', {
+  setDraftStatus(`Enviando ${selectedFiles.length} imagem${selectedFiles.length > 1 ? 'ens' : ''} para o workflow N8N...`, 'loading');
+  const response = await fetch('/api/drafts/analyze-image-n8n', {
     method: 'POST',
     body: formData
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Não foi possível interpretar a imagem.');
+  if (!response.ok) throw new Error(data.error || 'Não foi possível interpretar a imagem no N8N.');
   if (!data.draft_payload) throw new Error('A API não retornou o draft intermediário para revisão.');
   draftState.payload = data.draft_payload;
   draftState.analysis = data;
   applyDraftModuleToFields(data.draft_payload, { clearMissing: true });
   renderDraftReview(data);
-  setDraftStatus('Imagem interpretada; confirme as medidas sugeridas antes de converter.', 'loading');
+  setDraftStatus('Imagem analisada pelo N8N; revise os componentes e confirme as medidas antes de converter.', 'loading');
   return data;
 }
 
 async function analyzeDraftFromFile() {
-  const file = document.getElementById('draftFile')?.files?.[0];
+  const input = document.getElementById('draftFile');
+  const files = [...(input?.files || [])];
+  const file = files[0];
   if (!file) return setDraftStatus('Selecione uma imagem ou JSON de rascunho.', 'error');
   try {
     previewDraftFile(file);
     if (isImageFile(file)) {
-      await analyzeImageFromFile(file);
+      if (files.some((item) => !isImageFile(item))) throw new Error('Selecione somente imagens ou somente um JSON.');
+      if (files.length > 2) throw new Error('Envie no máximo duas imagens por análise.');
+      await analyzeImageFiles(files);
       return;
     }
+    if (files.length > 1) throw new Error('Envie somente um JSON de evidências por vez.');
     if (!file.name.toLowerCase().endsWith('.json') && file.type !== 'application/json') {
       throw new Error('Formato não suportado. Use JPEG, PNG, WebP ou JSON de evidências.');
     }
@@ -968,9 +986,10 @@ document.getElementById("convertDraft").addEventListener("click", convertDraft);
 document.getElementById("applyDraftMeasurements").addEventListener("click", applyDraftMeasurements);
 document.getElementById("applyDraftEvidence").addEventListener("click", applyDraftEvidence);
 document.getElementById("draftFile").addEventListener("change", (event) => {
-  const file = event.target.files?.[0];
+  const files = [...(event.target.files || [])];
+  const file = files[0];
   previewDraftFile(file);
-  if (isImageFile(file)) setDraftStatus('Imagem pronta para análise visual.', 'loading');
+  if (isImageFile(file)) setDraftStatus(`${files.length} imagem${files.length > 1 ? 'ens' : ''} pronta${files.length > 1 ? 's' : ''} para análise no N8N.`, 'loading');
   else if (file) setDraftStatus('JSON pronto para análise.', 'loading');
 });
 
@@ -980,3 +999,4 @@ window.addEventListener("hybrid-viewer-ready", () => {
 
 render();
 loadFlowMap();
+loadDraftN8nStatus();
