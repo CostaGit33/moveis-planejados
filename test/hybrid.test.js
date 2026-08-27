@@ -5,7 +5,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { enrichProject, projectToScene } = require('../hybrid-contract');
-const { registerHybridRoutes } = require('../api/hybrid-routes');
+const { registerHybridRoutes, projectParts } = require('../api/hybrid-routes');
 
 function request(server, route, method = 'GET', body) {
   return new Promise((resolve, reject) => {
@@ -84,6 +84,44 @@ async function main() {
   assert.strictEqual(components.filter((node) => node.role === 'drawer-bottom').length, 4);
   assert.strictEqual(components.filter((node) => node.role === 'foot').length, 4);
 
+  const closetProject = enrichProject({
+    unidade: 'mm',
+    pedido: 'Regressão: closet em U',
+    ambiente: { nome: 'Closet em U', layout: 'U', largura: 3200, profundidade: 2800, pe_direito: 2700, circulacao_minima: 800 },
+    paredes: [
+      { id: 'PAREDE-FUNDO', x: 0, y: 0, largura: 3200, espessura: 120, altura: 2700 },
+      { id: 'PAREDE-ESQUERDA', x: 0, y: 0, largura: 2800, espessura: 120, altura: 2700, rotacao_z: 90 },
+      { id: 'PAREDE-DIREITA', x: 3200, y: 0, largura: 2800, espessura: 120, altura: 2700, rotacao_z: -90 }
+    ],
+    modulos: [
+      {
+        id: 'U-ESQUERDA', tipo: 'torre_closet', nome: 'Torre esquerda', x: 120, y: 120, z: 0, rotacao_z: 0,
+        largura: 600, profundidade: 600, altura: 2400, espessura_chapa: 18, material: 'mdf_areia',
+        portas: 0, gavetas: 3, prateleiras: 3, parametros: { cabideiros: 1, divisorias_verticais: 1 }
+      },
+      {
+        id: 'U-FUNDO', tipo: 'armario_aberto', nome: 'Módulo do fundo', x: 1300, y: 120, z: 0, rotacao_z: 0,
+        largura: 600, profundidade: 600, altura: 2400, espessura_chapa: 18, material: 'mdf_areia',
+        portas: 0, gavetas: 0, prateleiras: 4, parametros: { divisorias_verticais: 2 }
+      },
+      {
+        id: 'U-DIREITA', tipo: 'torre_closet', nome: 'Torre direita', x: 2480, y: 120, z: 0, rotacao_z: 0,
+        largura: 600, profundidade: 600, altura: 2400, espessura_chapa: 18, material: 'mdf_areia',
+        portas: 0, gavetas: 4, prateleiras: 3, parametros: { cabideiros: 1, divisorias_verticais: 1 }
+      }
+    ]
+  });
+  const closetScene = projectToScene(closetProject);
+  const closetComponents = closetScene.nodes.filter((node) => node.kind === 'component');
+  assert.strictEqual(closetScene.nodes.filter((node) => node.kind === 'module').length, 3);
+  assert.strictEqual(closetComponents.filter((node) => node.role === 'vertical-divider').length, 4);
+  assert.strictEqual(closetComponents.filter((node) => node.role === 'hanger').length, 2);
+  assert(closetScene.nodes.filter((node) => node.rotation_deg?.z === 0).length >= 3);
+  const closetParts = projectParts(closetProject);
+  assert(closetParts.some((part) => part.nome === 'Divisória vertical'));
+  assert(closetParts.some((part) => part.nome === 'Cabideiro'));
+  assert(closetParts.length > 0);
+
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'moveis-hybrid-'));
   const app = express();
   app.use(express.json());
@@ -130,7 +168,9 @@ async function main() {
       job: jobResponse.status,
       job_update: jobUpdate.status,
       job_type: jobUpdate.body.job.type,
-      scene_nodes: sceneResponse.body.scene.nodes.length
+      scene_nodes: sceneResponse.body.scene.nodes.length,
+      closet_modules: closetScene.nodes.filter((node) => node.kind === 'module').length,
+      closet_parts: closetParts.length
     }, null, 2));
     console.log('hybrid tests: ok');
   } finally {

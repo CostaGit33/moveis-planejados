@@ -19,7 +19,10 @@ const fields = {
   chapa: document.getElementById("chapa"),
   moduloPortas: document.getElementById("moduloPortas"),
   moduloGavetas: document.getElementById("moduloGavetas"),
-  moduloPrateleiras: document.getElementById("moduloPrateleiras")
+  moduloPrateleiras: document.getElementById("moduloPrateleiras"),
+  composicaoLayout: document.getElementById("composicaoLayout"),
+  divisoriasVerticais: document.getElementById("divisoriasVerticais"),
+  cabideiros: document.getElementById("cabideiros")
 };
 
 const materials = {
@@ -48,8 +51,7 @@ const evidenceKindLabels = {
   door_opening: "Abertura de porta"
 };
 
-const evidenceKindOptions = Object.entries(evidenceKindLabels)
-  .filter(([kind]) => !["wall", "window", "door_opening", "mirror"].includes(kind));
+const evidenceKindOptions = Object.entries(evidenceKindLabels);
 
 let currentProject = null;
 let currentParts = [];
@@ -61,12 +63,15 @@ function numberValue(id) {
 }
 
 function buildProject() {
+  const layout = fields.composicaoLayout?.value || "single";
   return {
     schema_version: "1.1",
     unidade: "mm",
     pedido: fields.pedido.value.trim(),
     ambiente: {
-      nome: "Cozinha MVP",
+      nome: layout === "u" ? "Closet em U · composição revisável" : "Ambiente planejado",
+      layout,
+      circulacao_minima: 800,
       largura: numberValue("ambienteLargura"),
       profundidade: numberValue("ambienteProfundidade"),
       pe_direito: numberValue("peDireito")
@@ -99,7 +104,13 @@ function buildProject() {
         material: fields.material.value,
         portas: numberValue("moduloPortas"),
         gavetas: numberValue("moduloGavetas"),
-        prateleiras: numberValue("moduloPrateleiras")
+        prateleiras: numberValue("moduloPrateleiras"),
+        componentes: [],
+        parametros: {
+          layout,
+          divisorias_verticais: numberValue("divisoriasVerticais"),
+          cabideiros: numberValue("cabideiros")
+        }
       }
     ],
     materiais: {
@@ -171,6 +182,26 @@ function cabinetParts(module) {
 
   const shelves = safeCount(module.prateleiras);
   if (shelves) add("Prateleira", { largura: innerWidth, profundidade: innerDepth, altura: t, espessura: t, quantidade: shelves });
+
+  const explicitDividers = (module.componentes || []).filter((component) => /divis[oó]ria[_ ]vertical/i.test(String(component?.tipo || component?.kind || ''))).length;
+  const dividerCount = safeCount(module.parametros?.divisorias_verticais ?? explicitDividers);
+  if (dividerCount) add("Divisória vertical", {
+    largura: innerDepth,
+    profundidade: t,
+    altura: Math.max((h - t * 2) / Math.max(shelves + 1, 1) - t, t),
+    espessura: t,
+    quantidade: dividerCount
+  });
+
+  const explicitHangers = (module.componentes || []).filter((component) => /cabideiro/i.test(String(component?.tipo || component?.kind || ''))).length;
+  const hangerCount = safeCount(module.parametros?.cabideiros ?? explicitHangers);
+  if (hangerCount) add("Cabideiro", {
+    largura: innerWidth,
+    profundidade: 25,
+    altura: 25,
+    espessura: 25,
+    quantidade: hangerCount
+  });
 
   const doors = safeCount(module.portas);
   if (doors) {
@@ -279,16 +310,21 @@ function draw2d(project) {
     const y = originY + Number(module.y || 0) * scale;
     const w = Number(module.largura || 0) * scale;
     const d = Number(module.profundidade || 0) * scale;
+    const rotation = (Number(module.rotacao_z || 0) * Math.PI) / 180;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rotation);
     ctx.fillStyle = material.color;
     ctx.globalAlpha = 0.92;
-    ctx.fillRect(x, y, w, d);
+    ctx.fillRect(0, 0, w, d);
     ctx.globalAlpha = 1;
     ctx.strokeStyle = "#4b392d";
     ctx.lineWidth = 2;
-    ctx.strokeRect(x, y, w, d);
+    ctx.strokeRect(0, 0, w, d);
     ctx.fillStyle = "#fffaf3";
     ctx.font = "600 11px Inter, Arial";
-    ctx.fillText(module.nome || module.tipo || "Módulo", x + 6, y + 16);
+    ctx.fillText(module.nome || module.tipo || "Módulo", 6, 16);
+    ctx.restore();
   }
 
   ctx.fillStyle = "#59655d";
@@ -408,10 +444,11 @@ function renderSummary(project, parts) {
   const module = project.modulos?.[0];
   if (!module) return;
   const material = fallbackMaterial(module.material);
+  const dimensionsValid = [module.largura, module.profundidade, module.altura, module.espessura_chapa].every((value) => Number(value) > 0);
   const area = parts.reduce((total, part) => total + partAreaM2(part), 0);
-  const total = area * material.precoM2 * 1.18 + 180 + 450;
+  const total = dimensionsValid && parts.length ? area * material.precoM2 * 1.18 + 180 + 450 : 0;
   document.getElementById("areaMdf").textContent = `${area.toFixed(2).replace(".", ",")} m²`;
-  document.getElementById("valorEstimado").textContent = money.format(total);
+  document.getElementById("valorEstimado").textContent = dimensionsValid && parts.length ? money.format(total) : "Aguardando parâmetros";
   document.getElementById("dimensoesResumo").textContent = `${project.ambiente.largura} × ${project.ambiente.profundidade} mm`;
 }
 
@@ -425,6 +462,7 @@ function applyProject(project) {
   fields.paredeEspessura.value = project.paredes?.[0]?.espessura || "";
   fields.moduloTipo.value = module.tipo || "armario_inferior";
   fields.material.value = module.material || "mdf_areia";
+  if (fields.composicaoLayout) fields.composicaoLayout.value = project.composicao?.layout || project.ambiente?.layout || "single";
   fields.moduloX.value = module.x ?? 0;
   fields.moduloY.value = module.y ?? 0;
   fields.moduloLargura.value = module.largura || "";
@@ -434,6 +472,8 @@ function applyProject(project) {
   fields.moduloPortas.value = module.portas || 0;
   fields.moduloGavetas.value = module.gavetas || 0;
   fields.moduloPrateleiras.value = module.prateleiras || 0;
+  if (fields.divisoriasVerticais) fields.divisoriasVerticais.value = module.parametros?.divisorias_verticais || 0;
+  if (fields.cabideiros) fields.cabideiros.value = module.parametros?.cabideiros || 0;
 }
 
 function render(project = buildProject(), parts = null) {
@@ -558,7 +598,7 @@ function renderDraftEvidenceEditor(analysis) {
 
 function renderDraftReview(analysis) {
   const review = document.getElementById('draftReview');
-  const family = document.getElementById('draftFamily');
+  const familyOutput = document.getElementById('draftFamily');
   const level = document.getElementById('draftLevel');
   const componentCount = document.getElementById('draftComponents');
   const questionCount = document.getElementById('draftQuestionsCount');
@@ -566,19 +606,44 @@ function renderDraftReview(analysis) {
   const convertButton = document.getElementById('convertDraft');
   const visionInfo = document.getElementById('draftVisionInfo');
   const visionDescription = document.getElementById('draftVisionDescription');
+  const identificationLabel = document.getElementById('draftIdentificationLabel');
+  const identificationType = document.getElementById('draftIdentificationType');
+  const identificationConfidence = document.getElementById('draftIdentificationConfidence');
+  const identificationAlternatives = document.getElementById('draftIdentificationAlternatives');
   const ocrText = document.getElementById('draftOcrText');
+  const globalMeasurements = document.getElementById('draftGlobalMeasurements');
+  const moduleMeasurements = document.getElementById('draftModuleMeasurements');
+  const noModuleMessage = document.getElementById('draftNoModuleMessage');
   const applyMeasurementsButton = document.getElementById('applyDraftMeasurements');
   if (!review || !analysis) return;
 
   const proposal = analysis.draft?.proposal || {};
   const validation = analysis.validation || {};
+  const identification = analysis.draft?.identification || {};
+  const familyProposal = proposal.family || {};
   renderDraftEvidenceEditor(analysis);
   const openQuestions = validation.critical_missing?.length
     ? [...(analysis.draft?.open_questions || []), `Campos críticos ausentes: ${validation.critical_missing.join(', ')}`]
     : (analysis.draft?.open_questions || []);
-  family.textContent = proposal.family?.nome || 'Família não identificada';
+  const proposedModules = Array.isArray(proposal.modules) && proposal.modules.length ? proposal.modules : [proposal.module].filter(Boolean);
+  const proposedComponentCount = proposedModules.reduce((total, module) => total + (Array.isArray(module?.componentes) ? module.componentes.length : 0), 0);
+  const layoutLabel = analysis.draft?.composition?.layout ? ` · layout ${analysis.draft.composition.layout}` : '';
+  familyOutput.textContent = `${familyProposal.nome || identification.label || 'Família não identificada'}${layoutLabel}`;
+  if (identificationLabel) identificationLabel.textContent = identification.label || familyProposal.nome || 'Não identificada';
+  if (identificationType) identificationType.textContent = identification.type || familyProposal.tipo || 'unknown';
+  if (identificationConfidence) {
+    identificationConfidence.textContent = Number.isFinite(Number(identification.confidence))
+      ? `${Math.round(Number(identification.confidence) * 100)}%`
+      : 'não informada';
+  }
+  if (identificationAlternatives) {
+    const alternatives = Array.isArray(identification.alternatives) ? identification.alternatives : [];
+    identificationAlternatives.textContent = alternatives.length
+      ? `Alternativas: ${alternatives.map((item) => item.label || item.nome || item.type || item.tipo || 'interpretação alternativa').join(' · ')}`
+      : 'Sem alternativas relevantes retornadas.';
+  }
   level.textContent = validation.level || 'draft';
-  componentCount.textContent = proposal.module?.componentes?.length || 0;
+  componentCount.textContent = proposedComponentCount;
   questionCount.textContent = openQuestions.length;
   questions.innerHTML = openQuestions.length
     ? openQuestions.map((question) => `<li>${escapeHtml(question)}</li>`).join('')
@@ -600,7 +665,34 @@ function renderDraftReview(analysis) {
         const input = document.getElementById(id);
         if (input) input.value = dimensions[key] ?? '';
       }
-      if (applyMeasurementsButton) applyMeasurementsButton.disabled = false;
+      const modules = Array.isArray(proposal.modules) && proposal.modules.length ? proposal.modules : [proposal.module].filter(Boolean);
+      const hasMultipleModules = modules.length > 1;
+      if (noModuleMessage) {
+        noModuleMessage.hidden = modules.length > 0;
+        noModuleMessage.textContent = modules.length === 0
+          ? 'A análise visual retornou descrição/OCR, mas nenhum módulo paramétrico confirmado. Nenhuma geometria de fabricação será criada. Confirme manualmente as estruturas e reenvie um JSON de evidências para continuar.'
+          : '';
+      }
+      if (moduleMeasurements) {
+        moduleMeasurements.hidden = !hasMultipleModules;
+        if (globalMeasurements) globalMeasurements.hidden = hasMultipleModules || modules.length === 0;
+        moduleMeasurements.innerHTML = hasMultipleModules
+          ? `<strong>Medidas e placement por módulo (mm; rotação em graus)</strong>${modules.map((module, index) => {
+              const safeId = String(module.id || `MOD-${index + 1}`).replace(/[^a-zA-Z0-9_-]/g, '_');
+              return `<div class="draft-module-measurement-row" data-module-id="${escapeHtml(module.id || `MOD-${index + 1}`)}">
+                <b>${escapeHtml(module.nome || module.id || `Módulo ${index + 1}`)}</b>
+                <label>Largura<input data-measurement="largura" id="draft-${safeId}-largura" type="number" min="1" step="1" value="${module.largura ?? ''}"></label>
+                <label>Profundidade<input data-measurement="profundidade" id="draft-${safeId}-profundidade" type="number" min="1" step="1" value="${module.profundidade ?? ''}"></label>
+                <label>Altura<input data-measurement="altura" id="draft-${safeId}-altura" type="number" min="1" step="1" value="${module.altura ?? ''}"></label>
+                <label>Chapa<input data-measurement="espessura_chapa" id="draft-${safeId}-espessura_chapa" type="number" min="1" step="1" value="${module.espessura_chapa ?? ''}"></label>
+                <label>X<input data-measurement="x" id="draft-${safeId}-x" type="number" step="1" value="${module.x ?? ''}"></label>
+                <label>Y<input data-measurement="y" id="draft-${safeId}-y" type="number" step="1" value="${module.y ?? ''}"></label>
+                <label>Rotação Z<input data-measurement="rotacao_z" id="draft-${safeId}-rotacao_z" type="number" step="0.1" value="${module.rotacao_z ?? ''}"></label>
+              </div>`;
+            }).join('')}`
+          : '';
+      }
+      if (applyMeasurementsButton) applyMeasurementsButton.disabled = modules.length === 0;
     } else if (applyMeasurementsButton) {
       applyMeasurementsButton.disabled = true;
     }
@@ -629,7 +721,7 @@ async function analyzeDraftPayload(payload, options = {}) {
   if (visibleAnalysis.draft?.proposal?.module) {
     applyDraftModuleToFields(
       { draft: { module: visibleAnalysis.draft.proposal.module }, pedido: payload.pedido },
-      { clearMissing: Boolean(options.clearMissing) }
+      { clearMissing: Boolean(options.clearMissing), render: false }
     );
   }
   renderDraftReview(visibleAnalysis);
@@ -666,7 +758,7 @@ function applyDraftModuleToFields(payload, options = {}) {
     }
   }
   if (payload.pedido) fields.pedido.value = payload.pedido;
-  render();
+  if (options.render !== false) render();
 }
 
 async function loadDraftFixture() {
@@ -702,8 +794,11 @@ function previewDraftFile(file) {
 }
 
 async function analyzeImageFiles(files) {
-  const selectedFiles = files.filter(isImageFile).slice(0, 2);
+  const selectedFiles = files.filter(isImageFile);
   if (!selectedFiles.length) throw new Error('Selecione uma imagem JPEG, PNG ou WebP.');
+  if (selectedFiles.length > 2) {
+    throw new Error('O workflow N8N atual aceita até duas imagens por análise. Envie as referências em lotes de até duas; nenhuma imagem extra foi descartada.');
+  }
   const formData = new FormData();
   for (const file of selectedFiles) formData.append('image', file, file.name);
   formData.append('pedido', fields.pedido.value.trim());
@@ -717,7 +812,7 @@ async function analyzeImageFiles(files) {
   if (!data.draft_payload) throw new Error('A API não retornou o draft intermediário para revisão.');
   draftState.payload = data.draft_payload;
   draftState.analysis = data;
-  applyDraftModuleToFields(data.draft_payload, { clearMissing: true });
+  applyDraftModuleToFields(data.draft_payload, { clearMissing: true, render: false });
   renderDraftReview(data);
   setDraftStatus('Imagem analisada pelo N8N; revise os componentes e confirme as medidas antes de converter.', 'loading');
   return data;
@@ -732,7 +827,7 @@ async function analyzeDraftFromFile() {
     previewDraftFile(file);
     if (isImageFile(file)) {
       if (files.some((item) => !isImageFile(item))) throw new Error('Selecione somente imagens ou somente um JSON.');
-      if (files.length > 2) throw new Error('Envie no máximo duas imagens por análise.');
+      if (files.length > 2) throw new Error('O workflow N8N atual aceita até duas imagens por análise. Envie as referências em lotes de até duas; nenhuma imagem extra foi descartada.');
       await analyzeImageFiles(files);
       return;
     }
@@ -760,11 +855,17 @@ async function applyDraftEvidence() {
     ...item,
     ...(revisions.get(item.id) || {})
   }));
-  if (payload.draft.module) {
-    delete payload.draft.module.componentes;
-    delete payload.draft.module.portas;
-    delete payload.draft.module.gavetas;
-    delete payload.draft.module.prateleiras;
+  const modules = Array.isArray(payload.draft.modules) && payload.draft.modules.length
+    ? payload.draft.modules
+    : [payload.draft.module].filter(Boolean);
+  for (const module of modules) {
+    delete module.componentes;
+    delete module.portas;
+    delete module.gavetas;
+    delete module.prateleiras;
+  }
+  if (payload.draft.module && modules[0] !== payload.draft.module) {
+    payload.draft.module = modules[0];
   }
   try {
     setDraftStatus('Recalculando família e parâmetros dos componentes...', 'loading');
@@ -776,22 +877,63 @@ async function applyDraftEvidence() {
 }
 
 async function applyDraftMeasurements() {
-  if (!draftState.payload?.draft?.module) return setDraftStatus('Analise uma imagem antes de confirmar medidas.', 'error');
-  const values = {
-    largura: Number(document.getElementById('draftSuggestedWidth')?.value),
-    profundidade: Number(document.getElementById('draftSuggestedDepth')?.value),
-    altura: Number(document.getElementById('draftSuggestedHeight')?.value),
-    espessura_chapa: Number(document.getElementById('draftSuggestedThickness')?.value)
-  };
-  if (!Object.values(values).every((value) => Number.isFinite(value) && value > 0)) {
-    return setDraftStatus('Informe largura, profundidade, altura e espessura válidas para confirmar.', 'error');
-  }
+  const draft = draftState.payload?.draft;
+  const initialProposal = draft?.proposal || {};
+  const hasModules = Array.isArray(draft?.modules) && draft.modules.length
+    || Array.isArray(initialProposal.modules) && initialProposal.modules.length
+    || Boolean(draft?.module || initialProposal.module);
+  if (!hasModules) return setDraftStatus('A análise não retornou um módulo paramétrico. Confirme a estrutura em um JSON de evidências antes de aplicar medidas.', 'error');
   const payload = JSON.parse(JSON.stringify(draftState.payload));
-  payload.draft.module = { ...payload.draft.module, ...values };
+  const proposal = payload.draft.proposal || {};
+  const modules = Array.isArray(payload.draft.modules) && payload.draft.modules.length
+    ? payload.draft.modules
+    : Array.isArray(proposal.modules) && proposal.modules.length
+      ? proposal.modules
+      : [payload.draft.module].filter(Boolean);
+  if (modules.length > 1) {
+    const rows = [...document.querySelectorAll('#draftModuleMeasurements [data-module-id]')];
+    const measurementFields = ['largura', 'profundidade', 'altura', 'espessura_chapa'];
+    const placementFields = ['x', 'y', 'rotacao_z'];
+    const missingModule = modules.find((module) => {
+      const row = rows.find((candidate) => candidate.dataset.moduleId === String(module.id));
+      const dimensionsOk = measurementFields.every((field) => {
+        const value = Number(row?.querySelector(`[data-measurement="${field}"]`)?.value);
+        return Number.isFinite(value) && value > 0;
+      });
+      const placementOk = placementFields.every((field) => {
+        const value = Number(row?.querySelector(`[data-measurement="${field}"]`)?.value);
+        return Number.isFinite(value);
+      });
+      return !dimensionsOk || !placementOk;
+    });
+    if (missingModule) return setDraftStatus(`Confirme medidas, X, Y e rotação do módulo ${missingModule.nome || missingModule.id || ''}.`, 'error');
+    const updatedModules = modules.map((module) => {
+      const row = rows.find((candidate) => candidate.dataset.moduleId === String(module.id));
+      const values = Object.fromEntries([...measurementFields, ...placementFields].map((field) => [field, Number(row.querySelector(`[data-measurement="${field}"]`).value)]));
+      return { ...module, ...values };
+    });
+    payload.draft.modules = updatedModules;
+    payload.draft.module = updatedModules[0];
+    payload.draft.proposal = { ...proposal, module: updatedModules[0], modules: updatedModules };
+  } else {
+    const values = {
+      largura: Number(document.getElementById('draftSuggestedWidth')?.value),
+      profundidade: Number(document.getElementById('draftSuggestedDepth')?.value),
+      altura: Number(document.getElementById('draftSuggestedHeight')?.value),
+      espessura_chapa: Number(document.getElementById('draftSuggestedThickness')?.value)
+    };
+    if (!Object.values(values).every((value) => Number.isFinite(value) && value > 0)) {
+      return setDraftStatus('Informe largura, profundidade, altura e espessura válidas para confirmar.', 'error');
+    }
+    payload.draft.module = { ...payload.draft.module, ...values };
+    payload.draft.modules = [payload.draft.module];
+    payload.draft.proposal = { ...proposal, module: payload.draft.module, modules: [payload.draft.module] };
+  }
+  const referenceValue = Number(payload.draft.modules?.[0]?.largura || payload.draft.module?.largura);
   payload.draft.calibration = {
     status: 'calibrated',
     reference_dimension: 'usuario_confirmacao',
-    reference_value_mm: values.largura,
+    reference_value_mm: Number.isFinite(referenceValue) ? referenceValue : null,
     scale_px_per_mm: null
   };
   payload.draft.assumptions = [
@@ -873,8 +1015,8 @@ async function simulateFlow() {
 }
 
 async function generateBom() {
-  const project = buildProject();
-  const module = project.modulos[0];
+  const project = currentProject?.modulos?.length ? currentProject : buildProject();
+  const bomSpec = project.modulos.length > 1 ? project.modulos : project.modulos[0];
   const flowPayload = document.getElementById("flowPayload");
   setButtonsDisabled(true);
   setStatus("Gerando lista de peças no servidor...", "loading");
@@ -883,7 +1025,7 @@ async function generateBom() {
     const response = await fetch("/api/generate/bom", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(module)
+      body: JSON.stringify(bomSpec)
     });
     const data = await response.json();
     flowPayload.textContent = JSON.stringify(data, null, 2);

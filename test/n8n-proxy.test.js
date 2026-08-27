@@ -109,14 +109,29 @@ async function main() {
           }],
           assumptions: ['Sem escala confirmada.'],
           open_questions: ['Confirme as medidas.'],
+          composition: { layout: 'U', module_ids: ['U-LEFT', 'U-BACK'], description: 'Closet em U e módulo vertical separados.' },
           proposal: {
-            family: { tipo: 'armario_aberto', nome: 'Armário aberto' },
+            family: { tipo: 'composicao_u', nome: 'Closet em U' },
             module: {
-              id: 'MOD-001', tipo: 'armario_aberto', nome: 'Estante', x: 0, y: 0, z: 0,
+              id: 'U-LEFT', tipo: 'torre_closet', nome: 'Lateral esquerda', x: null, y: null, z: 0,
               largura: null, profundidade: null, altura: null, espessura_chapa: null,
-              material: 'mdf_areia', portas: 0, gavetas: 0, prateleiras: 1,
-              componentes: [], parametros: {}
-            }
+              material: 'mdf_areia', portas: 0, gavetas: 3, prateleiras: 3,
+              componentes: [], parametros: { divisorias_verticais: 1, cabideiros: 1 }
+            },
+            modules: [
+              {
+                id: 'U-LEFT', tipo: 'torre_closet', nome: 'Lateral esquerda', x: null, y: null, z: 0,
+                largura: null, profundidade: null, altura: null, espessura_chapa: null,
+                material: 'mdf_areia', portas: 0, gavetas: 3, prateleiras: 3,
+                componentes: [], parametros: { divisorias_verticais: 1, cabideiros: 1 }
+              },
+              {
+                id: 'U-BACK', tipo: 'armario_aberto', nome: 'Módulo do fundo', x: null, y: null, z: 0,
+                largura: null, profundidade: null, altura: null, espessura_chapa: null,
+                material: 'mdf_areia', portas: 0, gavetas: 0, prateleiras: 4,
+                componentes: [], parametros: { divisorias_verticais: 2 }
+              }
+            ]
           }
         },
         validation: { level: 'draft', critical_missing: ['largura', 'profundidade', 'altura', 'espessura_chapa'], warnings: [], errors: [] }
@@ -144,7 +159,14 @@ async function main() {
     assert.strictEqual(response.body.vision.ocr_text[0], '900 mm');
     assert.strictEqual(response.body.draft_payload.draft.source.filename, 'estante.png');
     assert.strictEqual(response.body.draft_payload.draft.evidence.length, 1);
-    assert.deepStrictEqual(response.body.validation.critical_missing, ['largura', 'profundidade', 'altura', 'espessura_chapa']);
+    assert.strictEqual(response.body.draft_payload.draft.composition.layout, 'U');
+    assert.strictEqual(response.body.draft_payload.draft.proposal.modules.length, 2);
+    assert.deepStrictEqual(response.body.validation.critical_missing, [
+      'modulos[0].largura', 'modulos[0].profundidade', 'modulos[0].altura', 'modulos[0].espessura_chapa',
+      'modulos[1].largura', 'modulos[1].profundidade', 'modulos[1].altura', 'modulos[1].espessura_chapa',
+      'modulos[0].x', 'modulos[0].y', 'modulos[0].rotacao_z',
+      'modulos[1].x', 'modulos[1].y', 'modulos[1].rotacao_z'
+    ]);
     assert.strictEqual(fetchCalls, 1);
 
     console.log(JSON.stringify({

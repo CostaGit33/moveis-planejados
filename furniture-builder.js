@@ -41,7 +41,9 @@ function normalizeSpec(moduloSpec) {
     folga_porta: Number(moduloSpec.folga_porta ?? 2),
     parametros: moduloSpec.parametros && typeof moduloSpec.parametros === 'object'
       ? moduloSpec.parametros
-      : {}
+      : {},
+    componentes: Array.isArray(moduloSpec.componentes) ? moduloSpec.componentes : [],
+    cabideiros: count(moduloSpec.cabideiros, 'cabideiros')
   };
 
   if (!Number.isFinite(normalized.folga_porta) || normalized.folga_porta < 0) {
@@ -71,6 +73,10 @@ function generateParts(moduloSpec) {
   const innerWidth = m.largura - (esp * 2);
   const innerDepth = m.profundidade - esp;
   const innerHeight = m.altura - (esp * 2);
+  const explicitDividerCount = m.componentes.filter((component) => /divis[oó]ria[_ ]vertical/i.test(String(component?.tipo || component?.kind || ''))).length;
+  const explicitHangerCount = m.componentes.filter((component) => /cabideiro/i.test(String(component?.tipo || component?.kind || ''))).length;
+  const dividerCount = count(m.parametros.divisorias_verticais ?? explicitDividerCount, 'parametros.divisorias_verticais');
+  const hangerCount = count(m.parametros.cabideiros ?? (m.cabideiros > 0 ? m.cabideiros : explicitHangerCount), 'parametros.cabideiros');
   const parts = [];
 
   parts.push(part('Painel Traseiro', {
@@ -117,6 +123,29 @@ function generateParts(moduloSpec) {
       espessura: esp,
       quantidade: m.prateleiras,
       material: m.material
+    }));
+  }
+
+  if (dividerCount > 0) {
+    const bayHeight = Math.max(innerHeight / Math.max(m.prateleiras + 1, 1), esp);
+    parts.push(part('Divisória vertical', {
+      largura: innerDepth,
+      profundidade: esp,
+      altura: Math.max(bayHeight - esp, esp),
+      espessura: esp,
+      quantidade: dividerCount,
+      material: m.material
+    }));
+  }
+
+  if (hangerCount > 0) {
+    parts.push(part('Cabideiro', {
+      largura: innerWidth,
+      profundidade: 25,
+      altura: 25,
+      espessura: 25,
+      quantidade: hangerCount,
+      material: m.parametros.cabideiro_material || 'ferragem_preta'
     }));
   }
 

@@ -70,6 +70,18 @@ function handle(parent, position, length, orientation = 'horizontal') {
   return mesh;
 }
 
+function hangerRod(parent, position, length) {
+  const geometry = new THREE.CylinderGeometry(0.012, 0.012, Math.max(length, 0.05), 16);
+  const material = new THREE.MeshStandardMaterial({ color: '#5d6266', roughness: 0.28, metalness: 0.78 });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(position.x, position.y, position.z);
+  mesh.rotation.z = Math.PI / 2;
+  mesh.castShadow = true;
+  mesh.userData = { kind: 'hanger' };
+  parent.add(mesh);
+  return mesh;
+}
+
 function foot(parent, position) {
   const geometry = new THREE.CylinderGeometry(0.018, 0.022, 0.055, 16);
   const material = new THREE.MeshStandardMaterial({ color: '#3f4547', roughness: 0.48, metalness: 0.56 });
@@ -109,8 +121,18 @@ function createModule(project, module) {
   const innerHeight = Math.max(height - thickness * 2, thickness);
   const visualGap = Math.max(number(module.folga_porta, 6), 6) * MM;
 
-  group.position.set(x, y, z);
-  group.userData = { id: module.id, kind: 'module', type: module.tipo };
+  const rotationZ = (number(module.rotacao_z, 0) * Math.PI) / 180;
+  const corners = [[0, 0], [width, 0], [0, depth], [width, depth]].map(([localX, localY]) => ({
+    x: localX * Math.cos(rotationZ) - localY * Math.sin(rotationZ),
+    y: localX * Math.sin(rotationZ) + localY * Math.cos(rotationZ)
+  }));
+  const minRotatedX = Math.min(...corners.map((corner) => corner.x));
+  const minRotatedY = Math.min(...corners.map((corner) => corner.y));
+  const rotatedWidth = Math.max(...corners.map((corner) => corner.x)) - minRotatedX;
+  const rotatedDepth = Math.max(...corners.map((corner) => corner.y)) - minRotatedY;
+  group.position.set(x - minRotatedX, y - minRotatedY, z);
+  group.rotation.z = rotationZ;
+  group.userData = { id: module.id, kind: 'module', type: module.tipo, rotation_z: number(module.rotacao_z, 0) };
 
   board(project, group, materialId, { x: thickness, y: depth, z: height }, { x: thickness / 2, y: depth / 2, z: height / 2 }, { kind: 'side' });
   board(project, group, materialId, { x: thickness, y: depth, z: height }, { x: width - thickness / 2, y: depth / 2, z: height / 2 }, { kind: 'side' });
@@ -125,6 +147,33 @@ function createModule(project, module) {
   }
 
   const gap = visualGap;
+  const dividerComponents = Array.isArray(module.componentes)
+    ? module.componentes.filter((component) => /divis[oó]ria[_ ]vertical/i.test(String(component?.tipo || component?.kind || '')))
+    : [];
+  const dividerCount = count(module.parametros?.divisorias_verticais ?? dividerComponents.length);
+  const dividerBayHeight = Math.max(innerHeight / Math.max(shelves + 1, 1), thickness);
+  for (let index = 0; index < dividerCount; index += 1) {
+    const component = dividerComponents[index] || {};
+    const componentPosition = component.posicao && typeof component.posicao === 'object' ? component.posicao : {};
+    const componentDimensions = component.dimensoes && typeof component.dimensoes === 'object' ? component.dimensoes : {};
+    const dividerX = number(componentPosition.x ?? component.x, width / 2 + (index - (dividerCount - 1) / 2) * Math.max(innerWidth / Math.max(dividerCount, 1), thickness));
+    const dividerZ = number(componentPosition.z ?? component.z, height - thickness - dividerBayHeight / 2);
+    const dividerHeight = Math.max(number(componentDimensions.altura ?? component.altura, dividerBayHeight - thickness), thickness);
+    board(project, group, materialId, { x: thickness, y: innerDepth, z: dividerHeight }, { x: dividerX, y: thickness + innerDepth / 2, z: dividerZ }, { kind: 'vertical-divider' });
+  }
+
+  const hangerComponents = Array.isArray(module.componentes)
+    ? module.componentes.filter((component) => /cabideiro/i.test(String(component?.tipo || component?.kind || '')))
+    : [];
+  const hangerCount = count(module.parametros?.cabideiros ?? hangerComponents.length);
+  for (let index = 0; index < hangerCount; index += 1) {
+    const component = hangerComponents[index] || {};
+    const componentPosition = component.posicao && typeof component.posicao === 'object' ? component.posicao : {};
+    const rodZ = number(componentPosition.z ?? component.z, thickness + innerHeight * 0.72);
+    const rodY = number(componentPosition.y ?? component.y, thickness + innerDepth / 2);
+    hangerRod(group, { x: width / 2, y: rodY, z: rodZ }, innerWidth);
+  }
+
   const doors = count(module.portas);
   const drawers = count(module.gavetas);
   const drawerZoneHeight = drawers > 0 && doors > 0 ? height * 0.38 : drawers > 0 ? height : 0;
@@ -179,7 +228,7 @@ function createModule(project, module) {
     foot(group, { x: width - footInset, y: depth * 0.82, z: footZ });
   }
 
-  return { group, bounds: { x, y, z: Math.min(z - 0.06, z), width, depth, height: height + 0.06 } };
+  return { group, bounds: { x, y, z: Math.min(z - 0.06, z), width: rotatedWidth, depth: rotatedDepth, height: height + 0.06 } };
 }
 
 function addRoom(project, root) {
@@ -210,7 +259,11 @@ function addRoom(project, root) {
       new THREE.BoxGeometry(wallWidth, wallDepth, wallHeightValue),
       materialFor(project, wall.material || 'alvenaria_branca', { transparent: true, opacity: 0.3, roughness: 0.9 })
     );
-    wallMesh.position.set(number(wall.x, 0) * MM + wallWidth / 2, number(wall.y, 0) * MM + wallDepth / 2, wallHeightValue / 2);
+    const wallRotation = (number(wall.rotacao_z ?? wall.rotation_z, 0) * Math.PI) / 180;
+    wallMesh.rotation.z = wallRotation;
+    const wallCenterX = (wallWidth * Math.cos(wallRotation) - wallDepth * Math.sin(wallRotation)) / 2;
+    const wallCenterY = (wallWidth * Math.sin(wallRotation) + wallDepth * Math.cos(wallRotation)) / 2;
+    wallMesh.position.set(number(wall.x, 0) * MM + wallCenterX, number(wall.y, 0) * MM + wallCenterY, wallHeightValue / 2);
     wallMesh.receiveShadow = true;
     root.add(wallMesh);
   }

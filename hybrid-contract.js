@@ -71,6 +71,7 @@ function normalizeModule(module = {}, index = 0) {
     x: nonNegativeOr(module.x, 0),
     y: nonNegativeOr(module.y, 0),
     z: nonNegativeOr(module.z, 0),
+    rotacao_z: finiteOr(module.rotacao_z ?? module.rotation_z ?? 0, 0),
     largura: width,
     profundidade: depth,
     altura: height,
@@ -79,6 +80,7 @@ function normalizeModule(module = {}, index = 0) {
     portas: Math.max(0, Math.round(nonNegativeOr(module.portas, 0))),
     gavetas: Math.max(0, Math.round(nonNegativeOr(module.gavetas, 0))),
     prateleiras: Math.max(0, Math.round(nonNegativeOr(module.prateleiras, 0))),
+    componentes: Array.isArray(module.componentes) ? module.componentes : [],
     parametros: module.parametros && typeof module.parametros === 'object' ? module.parametros : {}
   };
 }
@@ -101,6 +103,8 @@ function enrichProject(input = {}) {
     ambiente: {
       ...ambiente,
       nome: ambiente.nome || 'Ambiente planejado',
+      layout: ambiente.layout || null,
+      circulacao_minima: positiveOr(ambiente.circulacao_minima, 800),
       largura: positiveOr(ambiente.largura, 3200),
       profundidade: positiveOr(ambiente.profundidade, 800),
       pe_direito: positiveOr(ambiente.pe_direito, ambiente.altura || 2700)
@@ -134,17 +138,25 @@ function assemblyNodes(module) {
   const nodes = [];
   const innerWidth = Math.max(width - thickness * 2, thickness);
   const innerDepth = Math.max(depth - thickness, thickness);
+  const rotation = (module.rotacao_z * Math.PI) / 180;
+  const rotatePoint = (point) => ({
+    x: point.x * Math.cos(rotation) - point.y * Math.sin(rotation),
+    y: point.x * Math.sin(rotation) + point.y * Math.cos(rotation),
+    z: point.z
+  });
   const add = (role, position, size, extra = {}) => {
+    const worldPosition = rotatePoint(position);
     nodes.push({
       id: `${module.id}-${role}-${nodes.length + 1}`,
       kind: 'component',
       role,
       module_id: module.id,
       position_mm: {
-        x: module.x + position.x,
-        y: module.y + position.y,
-        z: module.z + position.z
+        x: module.x + worldPosition.x,
+        y: module.y + worldPosition.y,
+        z: module.z + worldPosition.z
       },
+      rotation_deg: { x: 0, y: 0, z: module.rotacao_z },
       size_mm: {
         x: Math.max(size.x, 1),
         y: Math.max(size.y, 1),
@@ -165,6 +177,31 @@ function assemblyNodes(module) {
   const innerHeight = Math.max(height - thickness * 2, thickness);
   for (let index = 0; index < shelves; index += 1) {
     add('shelf', { x: width / 2, y: thickness + innerDepth / 2, z: thickness + ((index + 1) * innerHeight) / (shelves + 1) }, { x: innerWidth, y: innerDepth, z: thickness });
+  }
+
+  const dividerComponents = module.componentes.filter((component) => /divis[oó]ria[_ ]vertical/i.test(String(component?.tipo || component?.kind || '')));
+  const dividerParameter = module.parametros?.divisorias_verticais;
+  const dividerCount = Math.max(0, Math.round(nonNegativeOr(dividerParameter, dividerComponents.length)));
+  const bayHeight = Math.max(innerHeight / Math.max(shelves + 1, 1), thickness);
+  for (let index = 0; index < dividerCount; index += 1) {
+    const component = dividerComponents[index] || {};
+    const position = component.posicao && typeof component.posicao === 'object' ? component.posicao : {};
+    const dimensions = component.dimensoes && typeof component.dimensoes === 'object' ? component.dimensoes : {};
+    const dividerX = finiteOr(position.x ?? component.x, width / 2 + (index - (dividerCount - 1) / 2) * Math.max(innerWidth / Math.max(dividerCount, 1), thickness));
+    const dividerZ = finiteOr(position.z ?? component.z, height - thickness - bayHeight / 2);
+    const dividerHeight = positiveOr(dimensions.altura || component.altura, Math.max(bayHeight - thickness, thickness));
+    add('vertical-divider', { x: dividerX, y: thickness + innerDepth / 2, z: dividerZ }, { x: thickness, y: innerDepth, z: dividerHeight });
+  }
+
+  const hangerComponents = module.componentes.filter((component) => /cabideiro/i.test(String(component?.tipo || component?.kind || '')));
+  const hangerParameter = module.parametros?.cabideiros;
+  const hangerCount = Math.max(0, Math.round(nonNegativeOr(hangerParameter, hangerComponents.length)));
+  for (let index = 0; index < hangerCount; index += 1) {
+    const component = hangerComponents[index] || {};
+    const position = component.posicao && typeof component.posicao === 'object' ? component.posicao : {};
+    const rodZ = finiteOr(position.z ?? component.z, thickness + innerHeight * 0.72);
+    const rodY = finiteOr(position.y ?? component.y, thickness + innerDepth / 2);
+    add('hanger', { x: width / 2, y: rodY, z: rodZ }, { x: innerWidth, y: 25, z: 25 }, { material: module.parametros?.cabideiro_material || 'ferragem_preta' });
   }
 
   const doors = module.portas;
@@ -237,6 +274,7 @@ function projectToScene(projectInput, parts = []) {
       id: module.id,
       kind: 'module',
       position_mm: { x: module.x, y: module.y, z: module.z },
+      rotation_deg: { x: 0, y: 0, z: module.rotacao_z },
       size_mm: { x: module.largura, y: module.profundidade, z: module.altura },
       material: module.material,
       composition: {

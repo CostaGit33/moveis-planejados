@@ -3,11 +3,43 @@
   "additionalProperties": false,
   "properties": {
     "view": {
-      "type": "string",
-      "enum": ["front", "perspective", "side", "top", "plan", "unknown"]
+      "type": "string"
+    },
+    "identification": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "type": { "type": "string" },
+        "label": { "type": "string" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "alternatives": {
+          "type": "array",
+          "items": { "type": "object", "additionalProperties": true }
+        },
+        "observed_geometry": { "type": "string" }
+      },
+      "required": ["type", "label", "confidence", "alternatives"]
+    },
+    "layout": {
+      "type": ["string", "null"]
+    },
+    "family": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "tipo": { "type": "string" },
+        "nome": { "type": "string" },
+        "subtipo": { "type": ["string", "null"] },
+        "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }
+      },
+      "required": ["tipo", "nome"]
     },
     "description": {
       "type": "string"
+    },
+    "observations": {
+      "type": "array",
+      "items": { "type": "string" }
     },
     "ocr_text": {
       "type": "array",
@@ -15,7 +47,7 @@
     },
     "dimensions": {
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
       "properties": {
         "width_mm": { "type": ["number", "null"] },
         "depth_mm": { "type": ["number", "null"] },
@@ -33,33 +65,60 @@
         "reference_value_mm"
       ]
     },
+    "composition": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "layout": { "type": ["string", "null"] },
+        "description": { "type": "string" },
+        "module_ids": { "type": "array", "items": { "type": "string" } },
+        "circulation_min_mm": { "type": ["number", "null"] },
+        "unresolved_relations": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["layout", "description", "module_ids", "circulation_min_mm", "unresolved_relations"]
+    },
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "id": { "type": "string" },
+          "tipo": { "type": "string" },
+          "nome": { "type": "string" },
+          "descricao": { "type": ["string", "null"] },
+          "x": { "type": ["number", "null"] },
+          "y": { "type": ["number", "null"] },
+          "z": { "type": ["number", "null"] },
+          "rotacao_z": { "type": ["number", "null"] },
+          "largura": { "type": ["number", "null"] },
+          "profundidade": { "type": ["number", "null"] },
+          "altura": { "type": ["number", "null"] },
+          "espessura_chapa": { "type": ["number", "null"] },
+          "material": { "type": ["string", "null"] },
+          "portas": { "type": "integer", "minimum": 0 },
+          "gavetas": { "type": "integer", "minimum": 0 },
+          "prateleiras": { "type": "integer", "minimum": 0 },
+          "parametros": { "type": "object", "additionalProperties": true },
+          "componentes": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+          "evidencia_ids": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["id", "tipo", "nome", "largura", "profundidade", "altura", "espessura_chapa", "portas", "gavetas", "prateleiras"]
+      }
+    },
     "components": {
       "type": "array",
       "items": {
         "type": "object",
-        "additionalProperties": false,
+        "additionalProperties": true,
         "properties": {
-          "kind": {
-            "type": "string",
-            "enum": [
-              "side",
-              "top",
-              "base",
-              "back",
-              "shelf",
-              "vertical_divider",
-              "door",
-              "drawer",
-              "drawer_front",
-              "hanger",
-              "foot",
-              "mirror",
-              "unknown"
-            ]
-          },
+          "id": { "type": "string" },
+          "kind": { "type": "string" },
+          "label": { "type": ["string", "null"] },
+          "description": { "type": ["string", "null"] },
           "box_px": {
             "type": "object",
-            "additionalProperties": false,
+            "additionalProperties": true,
             "properties": {
               "x": { "type": ["number", "null"] },
               "y": { "type": ["number", "null"] },
@@ -68,14 +127,17 @@
             },
             "required": ["x", "y", "width", "height"]
           },
-          "confidence": { "type": "number" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
           "status": {
             "type": "string",
             "enum": ["observed", "proposed", "needs_confirmation", "rejected"]
           },
-          "notes": { "type": "string" }
+          "notes": { "type": "string" },
+          "module_id": { "type": ["string", "null"] },
+          "posicao": { "type": "object", "additionalProperties": true },
+          "dimensoes": { "type": "object", "additionalProperties": true }
         },
-        "required": ["kind", "box_px", "confidence", "status", "notes"]
+        "required": ["kind", "confidence", "status", "notes"]
       }
     },
     "assumptions": {
@@ -89,9 +151,11 @@
   },
   "required": [
     "view",
+    "identification",
     "description",
     "ocr_text",
     "dimensions",
+    "composition",
     "components",
     "assumptions",
     "open_questions"

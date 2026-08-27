@@ -95,6 +95,65 @@ async function main() {
   assert.strictEqual(converted.project.modulos[0].altura, 1800);
   assert.strictEqual(converted.project.modulos[0].componentes[0].origem_evidencia, 'EVID-001');
 
+  const closetDraft = {
+    pedido: 'Closet em U de regressão',
+    draft: {
+      source: { type: 'technical_drawing', filename: 'closet-u-test.jpg' },
+      calibration: { status: 'calibrated', reference_dimension: 'usuario_confirmacao', reference_value_mm: 3200 },
+      composition: { layout: 'U' },
+      proposal: {
+        family: { tipo: 'composicao_u', nome: 'Closet em U' },
+        modules: [
+          { id: 'U-LEFT', tipo: 'torre_closet', nome: 'Lateral esquerda', x: 0, y: 0, z: 0, rotacao_z: 0, largura: 600, profundidade: 600, altura: 2400, espessura_chapa: 18, prateleiras: 3, gavetas: 3, portas: 0, parametros: { cabideiros: 1, divisorias_verticais: 1 } },
+          { id: 'U-BACK', tipo: 'armario_aberto', nome: 'Fundo', x: 1000, y: 0, z: 0, rotacao_z: 0, largura: 900, profundidade: 400, altura: 2400, espessura_chapa: 18, prateleiras: 5, gavetas: 0, portas: 0, parametros: { divisorias_verticais: 2 } },
+          { id: 'U-RIGHT', tipo: 'torre_closet', nome: 'Lateral direita', x: 2200, y: 0, z: 0, rotacao_z: 0, largura: 600, profundidade: 600, altura: 2400, espessura_chapa: 18, prateleiras: 3, gavetas: 4, portas: 0, parametros: { cabideiros: 1, divisorias_verticais: 1 } }
+        ]
+      },
+      evidence: []
+    },
+    ambiente: { layout: 'U', largura: 3200, profundidade: 2800, pe_direito: 2700 }
+  };
+  const closetAnalysis = analyzeDraft(closetDraft);
+  assert.strictEqual(closetAnalysis.draft.proposal.modules.length, 3);
+  assert.strictEqual(closetAnalysis.draft.proposal.family.tipo, 'composicao_u');
+  assert.deepStrictEqual(closetAnalysis.validation.critical_missing, []);
+  const closetConverted = convertDraftToProject(closetDraft);
+  assert.strictEqual(closetConverted.project.modulos.length, 3);
+  assert.strictEqual(closetConverted.project.composicao.layout, 'U');
+  assert.strictEqual(closetConverted.project.modulos[1].parametros.divisorias_verticais, 2);
+
+  const openIdentificationDraft = {
+    pedido: 'Rascunho de móvel não catalogado',
+    draft: {
+      source: { type: 'sketch', filename: 'custom-sketch.jpg' },
+      identification: {
+        type: 'painel_multifuncional',
+        label: 'Painel multifuncional com nichos',
+        confidence: 0.74,
+        alternatives: [{ type: 'estante_modular', label: 'Estante modular', confidence: 0.42 }]
+      },
+      calibration: { status: 'needs_confirmation' },
+      composition: { layout: 'single' },
+      proposal: {
+        family: { tipo: 'painel_multifuncional', nome: 'Painel multifuncional com nichos' },
+        module: { id: 'CUSTOM-001', tipo: 'painel_multifuncional', nome: 'Painel', largura: null, profundidade: null, altura: null, espessura_chapa: null, portas: 0, gavetas: 0, prateleiras: 0 }
+      },
+      evidence: [{ id: 'CUSTOM-EVID-001', kind: 'nicho_iluminado', confidence: 0.74, status: 'proposed', notes: 'Nicho identificado no desenho.' }]
+    }
+  };
+  const openIdentificationAnalysis = analyzeDraft(openIdentificationDraft);
+  assert.strictEqual(openIdentificationAnalysis.draft.identification.type, 'painel_multifuncional');
+  assert.strictEqual(openIdentificationAnalysis.draft.proposal.family.tipo, 'painel_multifuncional');
+  assert.strictEqual(openIdentificationAnalysis.draft.evidence[0].kind, 'nicho_iluminado');
+  assert.strictEqual(openIdentificationAnalysis.draft.proposal.module.componentes[0].tipo, 'nicho_iluminado');
+  assert.strictEqual(openIdentificationAnalysis.draft.identification.alternatives.length, 1);
+
+  const incompletePlacement = JSON.parse(JSON.stringify(closetDraft));
+  incompletePlacement.draft.proposal.modules[1].x = null;
+  const placementAnalysis = analyzeDraft(incompletePlacement);
+  assert(placementAnalysis.validation.critical_missing.includes('modulos[1].x'));
+  assert.throws(() => convertDraftToProject(incompletePlacement), (error) => error.code === 'DRAFT_INCOMPLETE');
+
   const incomplete = analyzeDraft({
     draft: {
       source: { type: 'sketch' },

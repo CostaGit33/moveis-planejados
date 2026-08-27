@@ -74,13 +74,21 @@
             </div>
             <div id="draftVisionInfo" class="draft-vision-info" hidden>
               <strong>Leitura da imagem</strong>
+              <div class="draft-identification">
+                <div><span>Identificação</span><b id="draftIdentificationLabel">Não identificada</b></div>
+                <div><span>Tipo</span><b id="draftIdentificationType">unknown</b></div>
+                <div><span>Confiança</span><b id="draftIdentificationConfidence">—</b></div>
+                <p id="draftIdentificationAlternatives"></p>
+              </div>
               <p id="draftVisionDescription"></p>
-              <div class="grid two">
+              <div class="grid two" id="draftGlobalMeasurements">
                 <label>Largura sugerida<input id="draftSuggestedWidth" type="number" min="1" step="1"></label>
                 <label>Profundidade sugerida<input id="draftSuggestedDepth" type="number" min="1" step="1"></label>
                 <label>Altura sugerida<input id="draftSuggestedHeight" type="number" min="1" step="1"></label>
                 <label>Espessura sugerida<input id="draftSuggestedThickness" type="number" min="1" step="1"></label>
               </div>
+              <p id="draftNoModuleMessage" class="helper-text draft-no-module" hidden></p>
+              <div id="draftModuleMeasurements" class="draft-module-measurements" hidden></div>
               <button id="applyDraftMeasurements" class="button button-secondary" type="button" disabled>Confirmar e aplicar medidas</button>
               <details>
                 <summary>Texto extraído por OCR</summary>
@@ -142,6 +150,13 @@
             </select>
           </label>
           <label>
+            Composição
+            <select id="composicaoLayout">
+              <option value="single">Módulo único</option>
+              <option value="u">Closet em U · módulos independentes</option>
+            </select>
+          </label>
+          <label>
             X
             <input id="moduloX" type="number" min="0" step="1" value="300">
           </label>
@@ -177,7 +192,16 @@
             Prateleiras
             <input id="moduloPrateleiras" type="number" min="0" max="100" step="1" value="0">
           </label>
+          <label>
+            Divisórias verticais
+            <input id="divisoriasVerticais" type="number" min="0" max="100" step="1" value="0">
+          </label>
+          <label>
+            Cabideiros
+            <input id="cabideiros" type="number" min="0" max="20" step="1" value="0">
+          </label>
         </div>
+        <p class="helper-text">No layout U, cada trecho deve ser um módulo independente com largura, profundidade, altura, posição e rotação confirmadas. O seletor não inventa as medidas dos dois cantos.</p>
 
         <div class="action-stack">
           <button id="generateProject" class="button button-primary" type="button">
