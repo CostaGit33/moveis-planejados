@@ -71,6 +71,20 @@
         { "type": "HTTP Request", "name": "Salvar Cutlist", "config": { "url": "{{ $env.API_URL }}/api/cutlists", "method": "POST", "optional": true } },
         { "type": "Telegram", "name": "Notificar Cliente/Operador", "config": { "message": "Projeto híbrido preparado; verifique a cena, os arquivos técnicos e os jobs." } }
       ]
+    },
+    {
+      "name": "Converter Rascunho de Módulo",
+      "id": "converter-rascunho-modulo",
+      "trigger": { "type": "webhook", "path": "/webhook/rascunho-modulo" },
+      "nodes": [
+        { "type": "Webhook", "name": "Receber Rascunho", "config": {} },
+        { "type": "HTTP Request", "name": "Analisar Rascunho", "config": { "url": "{{ $env.API_URL }}/api/drafts/analyze", "method": "POST" } },
+        { "type": "Manual Review", "name": "Confirmar Medidas e Componentes", "config": { "required_fields": ["largura", "profundidade", "altura", "espessura_chapa"], "approval": "required_before_convert" } },
+        { "type": "HTTP Request", "name": "Converter Rascunho", "config": { "url": "{{ $env.API_URL }}/api/drafts/convert", "method": "POST" } },
+        { "type": "HTTP Request", "name": "Preparar Cena Híbrida", "config": { "url": "{{ $env.API_URL }}/api/hybrid/scene", "method": "POST" } },
+        { "type": "HTTP Request", "name": "Gerar BOM Opcional", "config": { "url": "{{ $env.API_URL }}/api/generate/bom", "method": "POST", "optional": true } },
+        { "type": "Respond to Webhook", "name": "Responder Projeto Paramétrico", "config": { "response": "first_incoming_item" } }
+      ]
     }
   ]
 }

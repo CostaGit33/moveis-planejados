@@ -1,0 +1,132 @@
+{
+  "pedido": "Reproduzir o armário aberto do rascunho, com quatro níveis e divisória vertical no vão superior.",
+  "draft": {
+    "id": "DRAFT-ESTANTE-001",
+    "source": {
+      "type": "technical_drawing",
+      "filename": "IMG-20260824-WA0025.jpg",
+      "view": "perspective",
+      "width_px": 1086,
+      "height_px": 1448
+    },
+    "calibration": {
+      "status": "calibrated",
+      "reference_dimension": "largura_total",
+      "reference_value_mm": 900,
+      "scale_px_per_mm": 0.72
+    },
+    "evidence": [
+      {
+        "id": "EVID-001",
+        "kind": "side",
+        "box_px": { "x": 230, "y": 175, "width": 610, "height": 1110 },
+        "confidence": 0.98,
+        "status": "observed",
+        "notes": "Duas laterais externas contínuas."
+      },
+      {
+        "id": "EVID-002",
+        "kind": "top",
+        "box_px": { "x": 230, "y": 135, "width": 620, "height": 90 },
+        "confidence": 0.97,
+        "status": "observed",
+        "notes": "Tampo superior do módulo."
+      },
+      {
+        "id": "EVID-003",
+        "kind": "base",
+        "box_px": { "x": 230, "y": 1225, "width": 620, "height": 90 },
+        "confidence": 0.97,
+        "status": "observed",
+        "notes": "Base inferior do módulo."
+      },
+      {
+        "id": "EVID-004",
+        "kind": "back",
+        "box_px": { "x": 300, "y": 225, "width": 500, "height": 1000 },
+        "confidence": 0.84,
+        "status": "proposed",
+        "notes": "Painel traseiro sugerido pela linha de fundo dos vãos. Confirmar se o móvel possui fundo completo."
+      },
+      {
+        "id": "EVID-005",
+        "kind": "shelf",
+        "box_px": { "x": 250, "y": 420, "width": 570, "height": 34 },
+        "confidence": 0.98,
+        "status": "observed",
+        "notes": "Prateleira horizontal superior."
+      },
+      {
+        "id": "EVID-006",
+        "kind": "shelf",
+        "box_px": { "x": 250, "y": 650, "width": 570, "height": 34 },
+        "confidence": 0.98,
+        "status": "observed",
+        "notes": "Prateleira horizontal intermediária."
+      },
+      {
+        "id": "EVID-007",
+        "kind": "shelf",
+        "box_px": { "x": 250, "y": 875, "width": 570, "height": 34 },
+        "confidence": 0.98,
+        "status": "observed",
+        "notes": "Prateleira horizontal intermediária."
+      },
+      {
+        "id": "EVID-008",
+        "kind": "shelf",
+        "box_px": { "x": 250, "y": 1080, "width": 570, "height": 34 },
+        "confidence": 0.98,
+        "status": "observed",
+        "notes": "Prateleira horizontal inferior."
+      },
+      {
+        "id": "EVID-009",
+        "kind": "vertical_divider",
+        "box_px": { "x": 515, "y": 250, "width": 34, "height": 180 },
+        "confidence": 0.9,
+        "status": "observed",
+        "notes": "Divisória vertical visível no vão superior."
+      }
+    ],
+    "assumptions": [
+      "A largura total de 900 mm foi fornecida como referência de escala para o teste.",
+      "A profundidade foi definida como 350 mm apenas para completar o exemplo paramétrico e deve ser confirmada em uso real.",
+      "A espessura de 18 mm é uma convenção de teste, não uma leitura garantida da imagem."
+    ],
+    "open_questions": [
+      "O móvel possui fundo completo ou apenas travessas traseiras?",
+      "A divisória vertical existe somente no vão superior?",
+      "Qual é a profundidade real do móvel?"
+    ],
+    "module": {
+      "id": "MOD-ESTANTE-001",
+      "tipo": "armario_aberto",
+      "nome": "Armário aberto do rascunho",
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "largura": 900,
+      "profundidade": 350,
+      "altura": 1800,
+      "espessura_chapa": 18,
+      "material": "mdf_areia",
+      "portas": 0,
+      "gavetas": 0,
+      "prateleiras": 4,
+      "parametros": {
+        "divisorias_verticais": 1,
+        "fundo_completo": true,
+        "escala_confirmada_pelo_usuario": true
+      }
+    }
+  },
+  "ambiente": {
+    "nome": "Ambiente de teste",
+    "largura": 2400,
+    "profundidade": 1800,
+    "pe_direito": 2700
+  },
+  "paredes": [],
+  "aberturas": []
+}

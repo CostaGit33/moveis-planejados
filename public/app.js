@@ -31,6 +31,7 @@ const materials = {
 
 let currentProject = null;
 let currentParts = [];
+const draftState = { payload: null, analysis: null };
 
 function numberValue(id) {
   const value = Number(fields[id]?.value || 0);
@@ -470,6 +471,144 @@ async function loadFlowMap() {
   }
 }
 
+function setDraftStatus(text, type = '') {
+  const status = document.getElementById('draftStatus');
+  if (!status) return;
+  status.textContent = text;
+  status.dataset.type = type;
+}
+
+function renderDraftReview(analysis) {
+  const review = document.getElementById('draftReview');
+  const family = document.getElementById('draftFamily');
+  const level = document.getElementById('draftLevel');
+  const componentCount = document.getElementById('draftComponents');
+  const questionCount = document.getElementById('draftQuestionsCount');
+  const questions = document.getElementById('draftQuestions');
+  const convertButton = document.getElementById('convertDraft');
+  if (!review || !analysis) return;
+
+  const proposal = analysis.draft?.proposal || {};
+  const validation = analysis.validation || {};
+  const openQuestions = validation.critical_missing?.length
+    ? [...(analysis.draft?.open_questions || []), `Campos críticos ausentes: ${validation.critical_missing.join(', ')}`]
+    : (analysis.draft?.open_questions || []);
+  family.textContent = proposal.family?.nome || 'Família não identificada';
+  level.textContent = validation.level || 'draft';
+  componentCount.textContent = proposal.module?.componentes?.length || 0;
+  questionCount.textContent = openQuestions.length;
+  questions.innerHTML = openQuestions.length
+    ? openQuestions.map((question) => `<li>${escapeHtml(question)}</li>`).join('')
+    : '<li>Nenhuma questão crítica pendente.</li>';
+  convertButton.disabled = Boolean(validation.critical_missing?.length || validation.errors?.length);
+  review.hidden = false;
+  setDraftStatus(
+    convertButton.disabled
+      ? 'Rascunho analisado; confirme as dimensões críticas antes de converter.'
+      : 'Rascunho analisado; proposta pronta para conversão.',
+    convertButton.disabled ? 'loading' : 'success'
+  );
+}
+
+async function analyzeDraftPayload(payload) {
+  const response = await fetch('/api/drafts/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Não foi possível analisar o rascunho.');
+  draftState.payload = payload;
+  draftState.analysis = data;
+  renderDraftReview(data);
+  return data;
+}
+
+function applyDraftModuleToFields(payload) {
+  const module = payload.draft?.module;
+  if (!module) return;
+  if (module.tipo) fields.moduloTipo.value = module.tipo;
+  if (module.material) fields.material.value = module.material;
+  for (const [field, key] of [
+    ['moduloX', 'x'],
+    ['moduloY', 'y'],
+    ['moduloLargura', 'largura'],
+    ['moduloProfundidade', 'profundidade'],
+    ['moduloAltura', 'altura'],
+    ['chapa', 'espessura_chapa'],
+    ['moduloPortas', 'portas'],
+    ['moduloGavetas', 'gavetas'],
+    ['moduloPrateleiras', 'prateleiras']
+  ]) {
+    if (module[key] !== undefined && module[key] !== null) fields[field].value = module[key];
+  }
+  if (payload.ambiente) {
+    for (const [field, key] of [
+      ['ambienteLargura', 'largura'],
+      ['ambienteProfundidade', 'profundidade'],
+      ['peDireito', 'pe_direito']
+    ]) {
+      if (payload.ambiente[key] !== undefined && payload.ambiente[key] !== null) fields[field].value = payload.ambiente[key];
+    }
+  }
+  if (payload.pedido) fields.pedido.value = payload.pedido;
+  render();
+}
+
+async function loadDraftFixture() {
+  try {
+    const response = await fetch('/examples/rascunho-modulo-estante.json');
+    if (!response.ok) throw new Error('Não foi possível carregar o JSON de teste.');
+    const payload = await response.json();
+    applyDraftModuleToFields(payload);
+    await analyzeDraftPayload(payload);
+  } catch (error) {
+    setDraftStatus(error.message, 'error');
+  }
+}
+
+async function analyzeDraftFromFile() {
+  const file = document.getElementById('draftFile')?.files?.[0];
+  if (!file) return setDraftStatus('Selecione um arquivo JSON de rascunho.', 'error');
+  if (!file.name.toLowerCase().endsWith('.json')) {
+    return setDraftStatus('A análise de imagem ainda precisa de um interpretador visual; nesta etapa carregue o JSON de evidências.', 'loading');
+  }
+  try {
+    const payload = JSON.parse(await file.text());
+    applyDraftModuleToFields(payload);
+    await analyzeDraftPayload(payload);
+  } catch (error) {
+    setDraftStatus(error.message || 'JSON de rascunho inválido.', 'error');
+  }
+}
+
+async function convertDraft() {
+  if (!draftState.payload) return setDraftStatus('Analise um rascunho antes de converter.', 'error');
+  const convertButton = document.getElementById('convertDraft');
+  convertButton.disabled = true;
+  setDraftStatus('Convertendo rascunho em projeto paramétrico...', 'loading');
+  try {
+    const response = await fetch('/api/drafts/convert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(draftState.payload)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Não foi possível converter o rascunho.');
+    applyProject(data.project);
+    render(data.project, data.parts || null);
+    document.getElementById('flowPayload').textContent = JSON.stringify(data, null, 2);
+    document.getElementById('statusProjeto').textContent = 'Projeto convertido do rascunho';
+    setDraftStatus('Projeto paramétrico convertido com sucesso.', 'success');
+    setStatus('Rascunho convertido; cena híbrida atualizada.', 'success');
+  } catch (error) {
+    setDraftStatus(error.message, 'error');
+    setStatus(error.message, 'error');
+  } finally {
+    convertButton.disabled = Boolean(draftState.analysis?.validation?.critical_missing?.length);
+  }
+}
+
 async function simulateFlow() {
   const flowStatus = document.getElementById("flowStatus");
   const flowPayload = document.getElementById("flowPayload");
@@ -615,6 +754,9 @@ document.getElementById("exportJson").addEventListener("click", downloadJson);
 document.getElementById("exportGlb").addEventListener("click", downloadGlb);
 document.getElementById("loadBase").addEventListener("click", loadBaseProject);
 document.getElementById("simulateFlow").addEventListener("click", simulateFlow);
+document.getElementById("analyzeDraft").addEventListener("click", analyzeDraftFromFile);
+document.getElementById("loadDraftFixture").addEventListener("click", loadDraftFixture);
+document.getElementById("convertDraft").addEventListener("click", convertDraft);
 
 window.addEventListener("hybrid-viewer-ready", () => {
   if (currentProject) window.hybridViewer.renderProject(currentProject, currentParts);

@@ -102,3 +102,24 @@ Para registrar uma geração técnica, use `POST /api/hybrid/jobs` com um corpo 
 Os valores dinâmicos devem ser inseridos no modo Expression do N8N, sem colocar o objeto em aspas. Os tipos aceitos são `freecad`, `sketchup`, `blender` e `nesting`. O retorno `202` significa que o contrato foi registrado; não significa que um worker externo já executou o job.
 
 O fluxo deve tratar orçamento, render e exportação como saídas independentes. Não se deve bloquear a cena 3D porque o PostgreSQL está indisponível, nem executar FreeCAD ou Blender a cada alteração de campo. O browser deve permanecer rápido e os workers devem ser acionados após confirmação ou solicitação de exportação.
+
+
+## Conversor de rascunho de módulo
+
+O conversor de rascunho trabalha em duas etapas e mantém a revisão humana antes da geração paramétrica:
+
+```text
+Webhook `/webhook/rascunho-modulo`
+  -> POST `/api/drafts/analyze`
+  -> confirmar medidas e componentes
+  -> POST `/api/drafts/convert`
+  -> POST `/api/hybrid/scene`
+  -> BOM e jobs técnicos opcionais
+  -> Respond to Webhook
+```
+
+`/api/drafts/analyze` recebe um draft com `source`, `calibration`, `evidence`, `assumptions` e `open_questions`. A análise classifica a família do módulo, conta evidências e gera uma proposta com perguntas pendentes. `/api/drafts/convert` só converte quando largura, profundidade, altura e espessura da chapa estão preenchidas; caso contrário, retorna HTTP 422 com `validation.critical_missing`.
+
+Nesta primeira versão, o interpretador de imagem não é executado dentro da API. Uma etapa de visão/OCR deve produzir o JSON de evidências antes da chamada de análise. O arquivo `examples/rascunho-modulo-estante.json` é o fixture calibrado para testar o fluxo completo.
+
+O conversor não remove nem substitui o workflow `gerar-moveis`. O orçamento continua disponível como etapa opcional e o banco não é alterado.

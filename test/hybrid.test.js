@@ -75,7 +75,10 @@ async function main() {
   assert(components.some((node) => node.role === 'side-right'));
   assert(components.some((node) => node.role === 'top'));
   assert(components.some((node) => node.role === 'base'));
-  assert(components.some((node) => node.role === 'back'));
+  const back = components.find((node) => node.role === 'back');
+  assert(back);
+  assert.strictEqual(back.position_mm.y, 120 + 600 - 18 / 2);
+  assert.strictEqual(back.size_mm.y, 18);
   assert.strictEqual(components.filter((node) => node.role === 'drawer-front').length, 4);
   assert.strictEqual(components.filter((node) => node.role === 'drawer-side-left').length, 4);
   assert.strictEqual(components.filter((node) => node.role === 'drawer-bottom').length, 4);

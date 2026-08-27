@@ -39,6 +39,34 @@
           <textarea id="pedido" rows="5">Quero uma cozinha em L de 3,20 m x 2,80 m com pia, quatro gavetas e acabamento MDF areia.</textarea>
         </label>
 
+        <div class="draft-box">
+          <div class="subsection-heading">
+            <h3>Rascunho de módulo</h3>
+            <span>Proposta revisável</span>
+          </div>
+          <label>
+            Arquivo JSON do rascunho
+            <input id="draftFile" type="file" accept=".json,application/json">
+          </label>
+          <div class="button-row">
+            <button id="analyzeDraft" class="button button-secondary" type="button">Analisar rascunho</button>
+            <button id="loadDraftFixture" class="button button-ghost" type="button">Carregar exemplo</button>
+          </div>
+          <p class="helper-text" id="draftStatus">Use o exemplo para testar a conversão calibrada. Imagens exigem confirmação das medidas.</p>
+          <div id="draftReview" class="draft-review" hidden>
+            <div class="draft-review-head">
+              <strong id="draftFamily">Família não identificada</strong>
+              <span class="metric-chip" id="draftLevel">draft</span>
+            </div>
+            <div class="draft-review-grid">
+              <span>Componentes propostos <b id="draftComponents">0</b></span>
+              <span>Questões abertas <b id="draftQuestionsCount">0</b></span>
+            </div>
+            <ul id="draftQuestions"></ul>
+            <button id="convertDraft" class="button button-primary" type="button" disabled>Converter para projeto</button>
+          </div>
+        </div>
+
         <div class="subsection-heading">
           <h3>Ambiente</h3>
           <span>Medidas em milímetros</span>
@@ -75,6 +103,10 @@
               <option value="gaveteiro">Gaveteiro</option>
               <option value="aereo">Armário aéreo</option>
               <option value="torre_quente">Torre quente</option>
+              <option value="armario_aberto">Armário aberto</option>
+              <option value="estante">Estante</option>
+              <option value="torre_closet">Torre de closet</option>
+              <option value="armario_com_portas">Armário com portas</option>
             </select>
           </label>
           <label>

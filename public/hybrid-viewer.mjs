@@ -116,7 +116,7 @@ function createModule(project, module) {
   board(project, group, materialId, { x: thickness, y: depth, z: height }, { x: width - thickness / 2, y: depth / 2, z: height / 2 }, { kind: 'side' });
   board(project, group, materialId, { x: innerWidth, y: depth, z: thickness }, { x: width / 2, y: depth / 2, z: height - thickness / 2 }, { kind: 'top' });
   board(project, group, materialId, { x: innerWidth, y: depth, z: thickness }, { x: width / 2, y: depth / 2, z: thickness / 2 }, { kind: 'base' });
-  board(project, group, materialId, { x: innerWidth, y: thickness, z: innerHeight }, { x: width / 2, y: thickness / 2, z: height / 2 }, { kind: 'back' });
+  board(project, group, materialId, { x: innerWidth, y: thickness, z: innerHeight }, { x: width / 2, y: depth - thickness / 2, z: height / 2 }, { kind: 'back' });
 
   const shelves = count(module.prateleiras);
   for (let index = 0; index < shelves; index += 1) {

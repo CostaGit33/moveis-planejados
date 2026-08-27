@@ -159,7 +159,7 @@ function assemblyNodes(module) {
   add('side-right', { x: width - thickness / 2, y: depth / 2, z: height / 2 }, { x: thickness, y: depth, z: height });
   add('top', { x: width / 2, y: depth / 2, z: height - thickness / 2 }, { x: width, y: depth, z: thickness });
   add('base', { x: width / 2, y: depth / 2, z: thickness / 2 }, { x: width, y: depth, z: thickness });
-  add('back', { x: width / 2, y: thickness / 2, z: height / 2 }, { x: width, y: thickness, z: Math.max(height - thickness, thickness) });
+  add('back', { x: width / 2, y: depth - thickness / 2, z: height / 2 }, { x: width, y: thickness, z: Math.max(height - thickness, thickness) });
 
   const shelves = module.prateleiras;
   const innerHeight = Math.max(height - thickness * 2, thickness);

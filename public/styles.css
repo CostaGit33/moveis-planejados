@@ -661,3 +661,67 @@ pre {
     width: 100%;
   }
 }
+
+
+.draft-box {
+  margin-top: 22px;
+  border: 1px solid rgba(185, 104, 63, 0.22);
+  border-radius: 14px;
+  padding: 14px;
+  background: linear-gradient(145deg, rgba(245, 228, 217, 0.58), rgba(255, 253, 249, 0.82));
+}
+
+.draft-box .subsection-heading {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.draft-box input[type="file"] {
+  padding: 8px;
+  font-size: 12px;
+}
+
+.draft-review {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  border-top: 1px solid rgba(185, 104, 63, 0.18);
+  padding-top: 12px;
+}
+
+.draft-review-head,
+.draft-review-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.draft-review-head strong {
+  font-size: 13px;
+}
+
+.draft-review-grid {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.draft-review-grid b {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.draft-review ul {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.draft-review .button {
+  width: 100%;
+}

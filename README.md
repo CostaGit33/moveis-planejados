@@ -14,6 +14,8 @@ Instruções rápidas: veja SETUP.md e HYBRID_ARCHITECTURE.md.
 
 A base híbrida está organizada em `hybrid-contract.js`, `api/hybrid-routes.js` e `public/hybrid-viewer.mjs`. A API central continua sendo a fonte de verdade; FreeCAD, Blender e nesting são registrados como jobs para workers externos, enquanto o viewer e a exportação GLB funcionam no navegador.
 
+O conversor de rascunho usa `draft-converter.js` e `api/draft-routes.js`: recebe evidências produzidas por visão/OCR, analisa família e componentes, exige calibração de largura, profundidade, altura e espessura antes de converter, e disponibiliza o fixture `examples/rascunho-modulo-estante.json`. As rotas são `POST /api/drafts/analyze` e `POST /api/drafts/convert`; a conversão incompleta retorna HTTP 422 com `validation.critical_missing`. A imagem não é convertida diretamente em CAD nesta etapa.
+
 Scripts úteis:
 - node apply_schema.js    # aplica orcamento_moveis_schema.sql usando variáveis do .env
 - node seed_sample_data.js # insere dados de exemplo (executar após aplicar o schema)

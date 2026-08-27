@@ -15,7 +15,8 @@ const routeSources = [
   fs.readFileSync(path.join(root, "server.js"), "utf8"),
   fs.readFileSync(path.join(root, "api", "server.js"), "utf8"),
   fs.readFileSync(path.join(root, "api", "n8n-routes.js"), "utf8"),
-  fs.readFileSync(path.join(root, "api", "hybrid-routes.js"), "utf8")
+  fs.readFileSync(path.join(root, "api", "hybrid-routes.js"), "utf8"),
+  fs.readFileSync(path.join(root, "api", "draft-routes.js"), "utf8")
 ].join("\n");
 
 const implementedRoutes = new Set();

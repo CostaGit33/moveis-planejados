@@ -7,6 +7,7 @@ const { saveSketchupRuby } = require('../sketchup-generator-v2');
 const { registerN8nRoutes } = require('./n8n-routes');
 const { registerMvpRoutes } = require('./mvp-routes');
 const { registerHybridRoutes } = require('./hybrid-routes');
+const { registerDraftRoutes } = require('./draft-routes');
 
 const PORT = Number(process.env.PORT || 8090);
 const OUT_DIR = process.env.OUT_DIR || path.join(process.cwd(), 'saida_poc');
@@ -69,9 +70,11 @@ app.use('/vendor/three/build', express.static(path.join(__dirname, '..', 'node_m
 app.use('/vendor/three/examples/jsm', express.static(path.join(__dirname, '..', 'node_modules', 'three', 'examples', 'jsm')));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/saida_poc', express.static(path.join(__dirname, '..', 'saida_poc')));
+app.use('/examples', express.static(path.join(__dirname, '..', 'examples')));
 registerMvpRoutes(app);
 registerN8nRoutes(app);
 registerHybridRoutes(app, { outDir: OUT_DIR });
+registerDraftRoutes(app);
 
 app.get('/projeto_base.json', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'projeto_base.json'));
