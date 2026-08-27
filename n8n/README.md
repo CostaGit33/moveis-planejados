@@ -2,7 +2,7 @@
 
 ## Estado do fluxo
 
-O arquivo `../n8n-workflows.json` é um blueprint descritivo dos workflows, não um export nativo importável pelo N8N. Ele descreve cinco automações:
+O arquivo `../n8n-workflows.json` é um blueprint descritivo dos workflows, não um export nativo importável pelo N8N. Ele descreve sete automações, incluindo o workflow híbrido de móveis e o conversor visual de rascunhos:
 
 | Workflow | Gatilho | Objetivo |
 |---|---|---|
@@ -11,6 +11,7 @@ O arquivo `../n8n-workflows.json` é um blueprint descritivo dos workflows, não
 | Follow-up 7 dias | Cron diário às 09:00 | Buscar orçamentos enviados há mais de sete dias |
 | Relatório Diário | Cron diário às 18:00 | Buscar dados do dia, calcular KPIs e notificar o administrador |
 | Gerar Móveis | Webhook `/webhook/gerar-moveis` | Validar uma especificação, gerar BOM e enfileirar jobs FreeCAD/SketchUp |
+| Converter Rascunho de Módulo | Webhook `/webhook/rascunho-modulo` | Usar OpenAI no N8N para interpretar imagem, revisar evidências e converter projeto híbrido |
 
 ## Fluxo que já pode ser executado
 
@@ -106,26 +107,43 @@ O fluxo deve tratar orçamento, render e exportação como saídas independentes
 
 ## Conversor de rascunho de módulo
 
-O conversor de rascunho trabalha em duas etapas e mantém a revisão humana antes da geração paramétrica. A versão atual também aceita imagem para gerar o draft intermediário automaticamente:
+O conversor trabalha em duas etapas e mantém a revisão humana antes da geração paramétrica. Como a credencial OpenAI já está configurada no N8N, o desenho recomendado é **N8N interpretar a imagem** e a API de móveis apenas normalizar, validar e converter o JSON de evidências. Assim, a chave não precisa ser copiada para o EasyPanel, para o frontend ou para o GitHub.
 
 ```text
 Webhook `/webhook/rascunho-modulo`
-  -> imagem + pedido
-  -> POST `/api/drafts/analyze-image` (multipart, campo `image`)
-  -> confirmar medidas e componentes
-  -> POST `/api/drafts/analyze` (revalidação JSON)
+  -> OpenAI: Text / Generate a Model Response
+       imagem binária + pedido
+       saída JSON Schema
+  -> Code: Montar Draft de Evidências
+       n8n/normalize-draft-vision.js
+  -> POST `/api/drafts/analyze`
+  -> revisão humana: medidas e componentes
   -> POST `/api/drafts/convert`
   -> POST `/api/hybrid/scene`
   -> BOM e jobs técnicos opcionais
   -> Respond to Webhook
 ```
 
-`/api/drafts/analyze-image` recebe `multipart/form-data` com o arquivo no campo `image` e um campo textual opcional `pedido`. O backend mantém a imagem somente em memória, chama um provedor OpenAI-compatible multimodal, extrai OCR, dimensões explicitamente escritas e componentes com caixas em pixels, e devolve `draft_payload` para revisão. As dimensões extraídas da imagem permanecem como sugestões; não são confirmadas automaticamente.
+No nó **Webhook**, use `POST`, o caminho `rascunho-modulo`, a resposta **Using Respond to Webhook Node** e a opção **Binary Property** com o nome `image`. O webhook de produção do N8N deve ser publicado/ativado; a URL de teste só funciona enquanto o N8N está escutando o evento de teste.
 
-Configure `VISION_API_BASE`, `VISION_API_KEY`, `VISION_MODEL` e opcionalmente `VISION_MAX_IMAGE_BYTES` no serviço da API. O status pode ser consultado em `GET /api/drafts/vision/status`. Sem as duas primeiras variáveis, a rota retorna HTTP 503 de forma explícita, sem tentar adivinhar parâmetros.
+No nó **OpenAI**, selecione a credencial já existente no N8N. Para obter saída estruturada, prefira `Resource: Text`, `Operation: Generate a Model Response`, uma mensagem `Text` com as instruções técnicas e uma mensagem `Image` usando o binário `image`. Se a sua versão do N8N mostrar a opção, selecione `Output Format: JSON Schema` e use o conteúdo de `n8n/draft-vision-schema.json`. Escolha um modelo da sua conta com capacidade de visão. Não use apenas o nó de texto que recebe uma string vazia e não conecte um `Structured Output Parser` sem primeiro fornecer o conteúdo produzido pelo nó OpenAI.
 
-`/api/drafts/analyze` continua recebendo um draft JSON com `source`, `calibration`, `evidence`, `assumptions` e `open_questions`. Depois da revisão, a UI aplica as quatro medidas confirmadas manualmente, revalida o draft e habilita a conversão. `/api/drafts/convert` só converte quando largura, profundidade, altura e espessura da chapa estão preenchidas; caso contrário, retorna HTTP 422 com `validation.critical_missing`.
+As instruções da mensagem devem ser equivalentes a: analisar o desenho ou foto como rascunho de móvel planejado; retornar somente o schema; copiar OCR legível; preencher medidas apenas quando houver cota explicitamente escrita; usar `null` para medidas ausentes; registrar componentes visíveis com `kind`, `box_px`, `confidence`, `status` e `notes`; e nunca deduzir escala pela perspectiva. O arquivo `n8n/draft-vision-schema.json` é a fonte versionada do formato e `n8n/normalize-draft-vision.js` transforma as variações de saída do nó em `draft_payload`.
 
-O arquivo `examples/rascunho-modulo-estante.json` continua sendo o fixture calibrado para testar o fluxo JSON sem depender do provedor visual. A imagem de produção segue o princípio `imagem -> evidências -> revisão -> projeto`, não uma conversão pixel-a-CAD sem supervisão.
+No HTTP Request **Analisar Rascunho JSON**, use `POST`, `Content-Type: JSON` e o corpo no modo Expression, sem aspas ao redor do objeto:
 
-O conversor não remove nem substitui o workflow `gerar-moveis`. O orçamento continua disponível como etapa opcional e o banco não é alterado.
+```text
+={{ $json.draft_payload }}
+```
+
+A URL deve ser `={{ $env.API_URL }}/api/drafts/analyze`, com `API_URL=https://api.novaagencian8n.online` no ambiente do N8N. O retorno contém `draft.proposal.module`, `draft.evidence` e `validation`. Faça a revisão humana dos componentes e das quatro medidas críticas antes de chamar `/api/drafts/convert`.
+
+Após a revisão, o corpo do HTTP Request de conversão deve ser o draft revisado, por exemplo `={{ $json }}` quando o item atual já for o draft, ou `={{ $json.draft_payload }}` quando a revisão tiver alterado esse objeto. A conversão só é aceita com largura, profundidade, altura e espessura da chapa válidas; caso contrário, a API retorna HTTP 422 com `validation.critical_missing`.
+
+A rota `POST /api/drafts/analyze-image` continua disponível para uso direto pela interface web quando o serviço da API tiver um provedor próprio configurado. Ela não é necessária para este workflow N8N, porque neste desenho a imagem é interpretada pelo nó OpenAI do N8N. Não configure `VISION_API_KEY` no backend apenas para reutilizar a chave do N8N; são ambientes separados.
+
+O arquivo `examples/rascunho-modulo-estante.json` continua sendo o fixture calibrado para testar o fluxo JSON sem consumir créditos. A imagem de produção segue o princípio `imagem -> evidências -> revisão -> projeto`, não uma conversão pixel-a-CAD sem supervisão. O conversor não remove nem substitui o workflow `gerar-moveis`, o orçamento continua opcional e o banco não é alterado.
+
+### Versão antiga do N8N
+
+Se a instalação não tiver `Generate a Model Response` ou suporte a mensagem `Image`, use o nó `OpenAI -> Image -> Analyze Image` com a mesma credencial e o binário `image` para obter descrição/OCR. Nesse caso, a saída pode não ser JSON Schema; acrescente um segundo nó `OpenAI -> Text` ou um parser estruturado para transformar a descrição em exatamente o formato de `n8n/draft-vision-schema.json` antes do nó `Montar Draft de Evidências`. Não envie a descrição livre diretamente para `/api/drafts/analyze`, pois a API exige evidências estruturadas.

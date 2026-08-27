@@ -1,0 +1,99 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "view": {
+      "type": "string",
+      "enum": ["front", "perspective", "side", "top", "plan", "unknown"]
+    },
+    "description": {
+      "type": "string"
+    },
+    "ocr_text": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "dimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "width_mm": { "type": ["number", "null"] },
+        "depth_mm": { "type": ["number", "null"] },
+        "height_mm": { "type": ["number", "null"] },
+        "board_thickness_mm": { "type": ["number", "null"] },
+        "reference_dimension": { "type": ["string", "null"] },
+        "reference_value_mm": { "type": ["number", "null"] }
+      },
+      "required": [
+        "width_mm",
+        "depth_mm",
+        "height_mm",
+        "board_thickness_mm",
+        "reference_dimension",
+        "reference_value_mm"
+      ]
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "side",
+              "top",
+              "base",
+              "back",
+              "shelf",
+              "vertical_divider",
+              "door",
+              "drawer",
+              "drawer_front",
+              "hanger",
+              "foot",
+              "mirror",
+              "unknown"
+            ]
+          },
+          "box_px": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "x": { "type": ["number", "null"] },
+              "y": { "type": ["number", "null"] },
+              "width": { "type": ["number", "null"] },
+              "height": { "type": ["number", "null"] }
+            },
+            "required": ["x", "y", "width", "height"]
+          },
+          "confidence": { "type": "number" },
+          "status": {
+            "type": "string",
+            "enum": ["observed", "proposed", "needs_confirmation", "rejected"]
+          },
+          "notes": { "type": "string" }
+        },
+        "required": ["kind", "box_px", "confidence", "status", "notes"]
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "open_questions": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "required": [
+    "view",
+    "description",
+    "ocr_text",
+    "dimensions",
+    "components",
+    "assumptions",
+    "open_questions"
+  ]
+}
