@@ -9,7 +9,7 @@ from typing import Any
 
 app = FastAPI(
     title="Moveis Planejados Vision OCR",
-    version="2.0.0",
+    version="2.1.0",
     description="OCR técnico e análise de evidências para rascunhos de móveis planejados."
 )
 
@@ -22,8 +22,6 @@ def normalize_number(raw: str) -> float | None:
     value = re.sub(r"[^0-9,.]", "", raw)
     if not value:
         return None
-    # OCR may return 3.200, 3,200 or 3200. For dimension candidates,
-    # thousands separators are more common than decimal separators.
     if re.fullmatch(r"\d{1,2}[.,]\d{3}", value):
         value = value.replace(".", "").replace(",", "")
     else:
@@ -34,21 +32,22 @@ def normalize_number(raw: str) -> float | None:
         return None
 
 
-def resize_for_ocr(gray: np.ndarray) -> np.ndarray:
+def resize_for_ocr(gray: np.ndarray) -> tuple[np.ndarray, float]:
     h, w = gray.shape[:2]
     scale = 2.0
     if max(h, w) > 3500:
         scale = 1.5
     elif max(h, w) < 900:
         scale = 3.0
-    return cv2.resize(gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+    resized = cv2.resize(gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+    return resized, scale
 
 
-def preprocess_variants(image: Image.Image) -> list[tuple[str, np.ndarray]]:
+def preprocess_variants(image: Image.Image) -> tuple[list[tuple[str, np.ndarray]], float]:
     rgb = np.array(ImageOps.exif_transpose(image).convert("RGB"))
     bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
     gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
-    gray = resize_for_ocr(gray)
+    gray, scale = resize_for_ocr(gray)
 
     denoised = cv2.fastNlMeansDenoising(gray, None, 7, 7, 21)
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(denoised)
@@ -61,7 +60,7 @@ def preprocess_variants(image: Image.Image) -> list[tuple[str, np.ndarray]]:
         ("gray", clahe),
         ("otsu", otsu),
         ("adaptive", adaptive),
-    ]
+    ], scale
 
 
 def clean_ocr_text(text: str) -> str:
@@ -73,9 +72,17 @@ def clean_ocr_text(text: str) -> str:
     return "\n".join(lines)
 
 
-def extract_number_candidates(data: dict[str, list[Any]], image_width: int, image_height: int) -> list[dict[str, Any]]:
+def extract_number_candidates(
+    data: dict[str, list[Any]],
+    processed_width: int,
+    processed_height: int,
+    original_width: int,
+    original_height: int,
+    scale: float,
+) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
     total = len(data.get("text", []))
+
     for i in range(total):
         raw = str(data["text"][i] or "").strip()
         conf_raw = data.get("conf", ["-1"] * total)[i]
@@ -87,9 +94,12 @@ def extract_number_candidates(data: dict[str, list[Any]], image_width: int, imag
         if confidence < 25 or not raw:
             continue
 
-        match = re.search(r"(?<!\d)(\d{2,5}(?:[.,]\d{1,3})?)(?:\s*(mm|cm|m))?\b", raw, re.I)
+        match = re.search(
+            r"(?<!\d)(\d{2,5}(?:[.,]\d{1,3})?)(?:\s*(mm|cm|m))?\b",
+            raw,
+            re.I,
+        )
         if not match:
-            # Handle OCR strings containing a dimension plus stray characters.
             match = re.search(r"(\d{2,5})", raw)
         if not match:
             continue
@@ -98,27 +108,39 @@ def extract_number_candidates(data: dict[str, list[Any]], image_width: int, imag
         if number is None or number < MIN_DIMENSION or number > 10000:
             continue
 
-        x = int(data.get("left", [0] * total)[i])
-        y = int(data.get("top", [0] * total)[i])
-        w = int(data.get("width", [0] * total)[i])
-        h = int(data.get("height", [0] * total)[i])
+        px = int(data.get("left", [0] * total)[i])
+        py = int(data.get("top", [0] * total)[i])
+        pw = int(data.get("width", [0] * total)[i])
+        ph = int(data.get("height", [0] * total)[i])
+
+        # Tesseract runs on an upscaled image. Convert the bounding box back
+        # to ORIGINAL image coordinates so downstream vision/human review can
+        # draw the evidence on the actual uploaded image.
+        x = max(0, round(px / scale))
+        y = max(0, round(py / scale))
+        w = max(1, round(pw / scale))
+        h = max(1, round(ph / scale))
+        x = min(x, max(0, original_width - 1))
+        y = min(y, max(0, original_height - 1))
+        w = min(w, max(1, original_width - x))
+        h = min(h, max(1, original_height - y))
+
         unit = match.group(2).lower() if match.lastindex and match.lastindex >= 2 and match.group(2) else None
+        ocr_confidence = round(min(confidence / 100.0, 1.0), 3)
 
         candidates.append({
             "value": int(number) if number.is_integer() else number,
             "raw": raw,
-            "confidence": round(min(confidence / 100.0, 1.0), 3),
+            "confidence": ocr_confidence,
             "unit": unit,
-            "bbox": {
-                "x": x,
-                "y": y,
-                "width": w,
-                "height": h,
-            },
+            "bbox": {"x": x, "y": y, "width": w, "height": h},
             "normalized_position": {
-                "x": round((x + w / 2) / max(image_width, 1), 4),
-                "y": round((y + h / 2) / max(image_height, 1), 4),
+                "x": round((x + w / 2) / max(original_width, 1), 4),
+                "y": round((y + h / 2) / max(original_height, 1), 4),
             },
+            "source_image": "original",
+            "ocr_scale": scale,
+            "processed_bbox": {"x": px, "y": py, "width": pw, "height": ph},
         })
     return candidates
 
@@ -128,10 +150,10 @@ def classify_dimension_candidate(candidate: dict[str, Any], image_width: int, im
     x = candidate["normalized_position"]["x"]
     y = candidate["normalized_position"]["y"]
     confidence = float(candidate["confidence"])
+    unit = candidate.get("unit")
+    bbox_h = float(candidate["bbox"]["height"])
 
-    # These are heuristics only. They deliberately never confirm a critical
-    # dimension automatically; the position/context is passed to the next AI
-    # or human-review stage.
+    # Heuristics only: OCR candidates are evidence, never confirmed measures.
     if 1000 <= value <= 3500:
         base = 0.55
     elif 300 <= value <= 1000:
@@ -141,13 +163,19 @@ def classify_dimension_candidate(candidate: dict[str, Any], image_width: int, im
     else:
         base = 0.20
 
-    label = "dimension_candidate"
+    if unit:
+        base += 0.20
+    if bbox_h >= 8:
+        base += 0.04
+    elif bbox_h <= 3:
+        base -= 0.05
+
     if y < 0.18 or y > 0.82:
         base += 0.05
     if x < 0.18 or x > 0.82:
         base += 0.03
 
-    return label, round(min(0.95, base * 0.7 + confidence * 0.3), 3)
+    return "dimension_candidate", round(min(0.95, max(0.05, base * 0.7 + confidence * 0.3)), 3)
 
 
 def merge_candidates(candidate_sets: list[list[dict[str, Any]]]) -> list[dict[str, Any]]:
@@ -155,15 +183,19 @@ def merge_candidates(candidate_sets: list[list[dict[str, Any]]]) -> list[dict[st
     for candidates in candidate_sets:
         for item in candidates:
             b = item["bbox"]
-            key = (int(item["value"]), round(b["x"] / 20), round(b["y"] / 20))
+            key = (
+                int(item["value"]),
+                round(b["x"] / 10),
+                round(b["y"] / 10),
+            )
             previous = merged.get(key)
             if previous is None or item["confidence"] > previous["confidence"]:
                 merged[key] = item
     return sorted(merged.values(), key=lambda x: (-x["confidence"], x["value"]))[:50]
 
 
-def run_ocr(image: Image.Image) -> tuple[str, list[dict[str, Any]], dict[str, str]]:
-    variants = preprocess_variants(image)
+def run_ocr(image: Image.Image) -> tuple[str, list[dict[str, Any]], dict[str, str], float]:
+    variants, scale = preprocess_variants(image)
     texts: list[str] = []
     candidate_sets: list[list[dict[str, Any]]] = []
     methods: dict[str, str] = {}
@@ -176,16 +208,26 @@ def run_ocr(image: Image.Image) -> tuple[str, list[dict[str, Any]], dict[str, st
             config=config,
             output_type=pytesseract.Output.DICT,
         )
-        text = clean_ocr_text("\n".join(str(x) for x in data.get("text", []) if str(x).strip()))
+        text = clean_ocr_text(
+            "\n".join(str(x) for x in data.get("text", []) if str(x).strip())
+        )
         if text:
             texts.append(text)
-        candidates = extract_number_candidates(data, processed.shape[1], processed.shape[0])
+
+        candidates = extract_number_candidates(
+            data,
+            processed.shape[1],
+            processed.shape[0],
+            image.width,
+            image.height,
+            scale,
+        )
         candidate_sets.append(candidates)
-        methods[name] = f"psm11 candidates={len(candidates)}"
+        methods[name] = f"psm11 candidates={len(candidates)} scale={scale:g}x"
 
     merged = merge_candidates(candidate_sets)
     best_text = max(texts, key=len) if texts else ""
-    return best_text, merged, methods
+    return best_text, merged, methods, scale
 
 
 @app.get("/")
@@ -193,7 +235,7 @@ def root():
     return {
         "status": "ok",
         "service": "moveis-vision",
-        "version": "2.0.0",
+        "version": "2.1.0",
         "docs": "/docs",
         "health": "/health",
         "process_image": "/process-image",
@@ -207,7 +249,7 @@ def health():
     return {
         "status": "ok",
         "service": "moveis-vision",
-        "version": "2.0.0",
+        "version": "2.1.0",
         "opencv": cv2.__version__,
         "tesseract": tess_version,
         "ocr_languages": [lang for lang in ("por", "eng") if lang in langs],
@@ -231,7 +273,7 @@ async def process_image(image: UploadFile = File(...)):
         if original.width > MAX_DIMENSION or original.height > MAX_DIMENSION:
             raise HTTPException(status_code=413, detail="Dimensões da imagem excedem o limite permitido.")
 
-        text, candidates, methods = run_ocr(original)
+        text, candidates, methods, scale = run_ocr(original)
         evidence = []
         for candidate in candidates:
             evidence_type, evidence_confidence = classify_dimension_candidate(
@@ -258,6 +300,7 @@ async def process_image(image: UploadFile = File(...)):
                 "text": text,
                 "language": "por+eng",
                 "engine": "tesseract",
+                "scale": scale,
                 "methods": methods,
             },
             "detections": {
