@@ -24,4 +24,5 @@ USER appuser
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+# EasyPanel provides PORT at runtime (currently 80). Use it automatically.
+CMD ["sh", "-c", "exec uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}"]
