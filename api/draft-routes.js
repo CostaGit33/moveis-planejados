@@ -33,17 +33,44 @@ function n8nProxyError(message, code, status, detail) {
 function normalizeN8nDraftResponse(value, pedido) {
   const body = Array.isArray(value) ? value[0] : value;
   if (!body || typeof body !== 'object') {
-    throw n8nProxyError('O workflow N8N não retornou um objeto de draft.', 'N8N_INVALID_OUTPUT', 502);
+    throw n8nProxyError('O workflow N8N não retornou um objeto JSON.', 'N8N_INVALID_OUTPUT', 502);
   }
+
   const payload = body.draft_payload?.draft
     ? body.draft_payload
     : body.draft
       ? { pedido: body.pedido || pedido || '', draft: body.draft }
       : null;
-  if (!payload?.draft || typeof payload.draft !== 'object') {
-    throw n8nProxyError('O workflow N8N não retornou draft_payload.', 'N8N_INVALID_OUTPUT', 502);
+
+  const imageBase64 = typeof body.imagem_base64 === 'string' && body.imagem_base64.trim()
+    ? body.imagem_base64.trim()
+    : null;
+  const imageUrl = typeof body.image_url === 'string' && body.image_url.trim()
+    ? body.image_url.trim()
+    : null;
+  const hasImage = Boolean(imageBase64 || imageUrl);
+
+  if (!payload?.draft && !hasImage) {
+    throw n8nProxyError('O workflow N8N não retornou draft_payload nem imagem final.', 'N8N_INVALID_OUTPUT', 502);
   }
-  return { payload, body };
+
+  return {
+    payload,
+    body,
+    image: hasImage ? {
+      image_url: imageUrl,
+      imagem_base64: imageBase64,
+      mimeType: body.arquivo?.mimeType || 'image/png',
+      nome: body.arquivo?.nome || (imageBase64 ? `cena-${body.runId || 'gerada'}.png` : null),
+      codigo: body.codigo || 'IMAGE_GENERATED',
+      etapa: body.etapa || 'imagem_gerada',
+      runId: body.runId || null,
+      referencia_visual_utilizada: body.referencia_visual_utilizada !== false,
+      identificacao_movel: body.identificacao_movel || null,
+      especificacao_tecnica: body.especificacao_tecnica || null,
+      image_prompt: body.image_prompt || null
+    } : null
+  };
 }
 
 async function callN8nDraftWebhook({ file, files = [], pedido = '', id, env = process.env }) {
@@ -171,13 +198,29 @@ function registerDraftRoutes(app) {
 
   app.post('/api/drafts/analyze-image-n8n', uploadImages, async (req, res) => {
     try {
-      const { payload, body } = await callN8nDraftWebhook({
+      const result = await callN8nDraftWebhook({
         files: req.files,
         pedido: req.body?.pedido,
         id: req.body?.id,
         env: process.env
       });
-      return res.json(buildN8nAnalysis({ payload, body, pedido: req.body?.pedido }));
+
+      if (result.image) {
+        const imageDataUrl = result.image.imagem_base64
+          ? (result.image.imagem_base64.startsWith('data:')
+            ? result.image.imagem_base64
+            : `data:${result.image.mimeType};base64,${result.image.imagem_base64}`)
+          : null;
+        return res.json({
+          ok: true,
+          image_result: {
+            ...result.image,
+            image_data_url: imageDataUrl
+          }
+        });
+      }
+
+      return res.json(buildN8nAnalysis({ payload: result.payload, body: result.body, pedido: req.body?.pedido }));
     } catch (error) {
       console.error('POST /api/drafts/analyze-image-n8n error', error.code || error.message);
       const status = ['N8N_NOT_CONFIGURED', 'N8N_RUNTIME_UNSUPPORTED'].includes(error.code)

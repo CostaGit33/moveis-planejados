@@ -1,0 +1,462 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "criar-cena-v2",
+        "responseMode": "responseNode",
+        "options": {
+          "binaryPropertyName": "data"
+        }
+      },
+      "id": "2ba83433-2cc4-4eb2-97ca-0c73c57fbb3e",
+      "name": "Webhook - Criar Cena V2",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        7680,
+        16
+      ],
+      "webhookId": "cena-v2-webhook-001"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const body = $json.body ?? $json;\n\nconst binaryKeys = $binary ? Object.keys($binary) : [];\n\nlet source = null;\nlet sourceName = null;\n\nconst preferredKeys = ['data', 'data0', 'image', 'image0', 'file', 'upload'];\n\nfor (const key of preferredKeys) {\n  if ($binary?.[key]) {\n    sourceName = key;\n    source = $binary[key];\n    break;\n  }\n}\n\nif (!source && binaryKeys.length > 0) {\n  sourceName = binaryKeys[0];\n  source = $binary[sourceName];\n}\n\nif (!source) {\n  throw new Error(\n    'Nenhuma imagem foi recebida pelo webhook. Campos binários encontrados: ' +\n    (binaryKeys.join(', ') || 'nenhum')\n  );\n}\n\nconst allowed = [\n  'image/jpeg',\n  'image/jpg',\n  'image/png',\n  'image/webp'\n];\n\nconst mimeType = String(source.mimeType || '').toLowerCase();\n\nif (!allowed.includes(mimeType)) {\n  throw new Error(\n    'Formato de imagem não suportado: ' +\n    (mimeType || 'mimeType desconhecido') +\n    '. Formatos aceitos: JPEG, PNG e WEBP.'\n  );\n}\n\nconst pedido = String(\n  body?.pedido ??\n  body?.text ??\n  body?.prompt ??\n  $json.pedido ??\n  $json.text ??\n  ''\n).trim();\n\nconst runId = `cena-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;\n\nconst arquivo = {\n  nome: source.fileName || `rascunho-${runId}`,\n  mimeType,\n  tamanho_bytes: Number(source.fileSize || 0)\n};\n\nreturn {\n  json: {\n    runId,\n    timestamp: new Date().toISOString(),\n    pedido,\n    campo_original: sourceName,\n    campo_normalizado: 'data',\n    arquivo,\n    imagem_base64: source.data,\n    imagem_referencia_disponivel: true\n  },\n  binary: {\n    data: source\n  }\n};"
+      },
+      "id": "d00da456-6956-458b-9a78-47f80adfe626",
+      "name": "Normalizar Upload → data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7904,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://opencv.novaagencian8n.online/process-image",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "image",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "dacbee00-dd42-41fd-91bd-03caa3da4c0a",
+      "name": "OCR - OpenCV + Tesseract",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8144,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const response = $json || {};\nconst original = $node['Normalizar Upload → data'].json;\nconst binary = $node['Normalizar Upload → data'].binary;\n\nfunction findText(obj) {\n  if (!obj) return '';\n\n  if (typeof obj === 'string') return obj.trim();\n\n  if (Array.isArray(obj)) {\n    const parts = obj.map(findText).filter(Boolean);\n    return parts.join('\\n').trim();\n  }\n\n  if (typeof obj === 'object') {\n    const keys = [\n      'text',\n      'ocr_text',\n      'texto',\n      'result',\n      'output',\n      'content',\n      'message'\n    ];\n\n    for (const key of keys) {\n      if (obj[key] !== undefined) {\n        const value = findText(obj[key]);\n        if (value) return value;\n      }\n    }\n  }\n\n  return '';\n}\n\nconst ocrText = findText(response);\n\nreturn {\n  json: {\n    ...original,\n    ocr_text: ocrText,\n    ocr_raw: response,\n    ocr_status: ocrText ? 'sucesso' : 'sem_texto_detectado',\n    referencia_visual: true\n  },\n  binary: {\n    data: binary.data\n  }\n};"
+      },
+      "id": "f70c6b34-7e67-4d92-8c4e-2f98b0d4db1c",
+      "name": "Preparar Resultado OCR",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8384,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o",
+          "cachedResultName": "GPT-4O"
+        },
+        "text": "=Você é um especialista em leitura técnica de desenhos de marcenaria, móveis planejados, arquitetura de interiores e projetos de mobiliário.\n\nVocê receberá:\n1. A IMAGEM ORIGINAL do rascunho.\n2. O TEXTO EXTRAÍDO PELO OCR.\n3. O PEDIDO DO USUÁRIO.\n\nA IMAGEM ORIGINAL é a principal fonte geométrica.\nO OCR é a principal fonte para textos, números, cotas e medidas escritas.\nO pedido do usuário é apenas contexto complementar.\n\nREGRAS ABSOLUTAS:\n\n1. NUNCA invente medidas.\n2. NUNCA transforme uma estimativa visual em medida numérica.\n3. NUNCA altere uma medida encontrada no OCR.\n4. NUNCA descarte uma medida claramente escrita no desenho.\n5. NUNCA deixe o pedido do usuário substituir uma medida encontrada no desenho.\n6. NUNCA aumente ou diminua a quantidade de portas, gavetas, módulos ou nichos apenas porque o usuário pediu.\n7. Se OCR e imagem divergirem, preserve o valor legível no desenho e marque a divergência.\n8. Se uma medida estiver parcialmente legível, marque como INCERTO.\n9. Se não existir medida, escreva 'não informado'.\n10. Não invente escala.\n11. Não invente proporções numéricas.\n12. Não invente profundidade.\n\nIMPORTANTE SOBRE O OCR:\nO OCR pode conter erros.\nVocê deve comparar cada informação textual do OCR com a imagem original.\nSomente aceite como CONFIRMADO aquilo que estiver coerente com a imagem.\nQuando o OCR encontrar uma medida que também esteja visualmente presente, marque como OBSERVADO/OCR_CONFIRMADO.\n\nANALISE OBRIGATORIAMENTE:\n\nTIPO DE MÓVEL\nTIPO DE AMBIENTE\nLARGURA\nALTURA\nPROFUNDIDADE\nMÓDULOS\nDIVISÓRIAS VERTICAIS\nDIVISÓRIAS HORIZONTAIS\nPRATELEIRAS\nNICHOS\nPORTAS\nGAVETAS\nPAINÉIS\nLATERAIS\nFUNDO\nTAMPO\nRODAPÉ\nVÃOS\nELEMENTOS SUPERIORES\nELEMENTOS CENTRAIS\nELEMENTOS INFERIORES\nOBJETOS\nELETRODOMÉSTICOS\nPAREDES\nPISO\nTETO\nJANELAS\nPORTAS DO AMBIENTE\nILUMINAÇÃO\nMATERIAIS\nCORES\nTEXTOS\nMEDIDAS\nCOTAS\nSETAS\nANOTAÇÕES\nPERSPECTIVA\nORIENTAÇÃO ESPACIAL\n\nPARA CADA ITEM, CLASSIFIQUE:\nOBSERVADO\nOCR_CONFIRMADO\nINFERIDO\nINCERTO\nNÃO INFORMADO\n\nFORMATO DA RESPOSTA:\n\n=== ESPECIFICAÇÃO TÉCNICA DO RASCUNHO ===\n\nTIPO DE MÓVEL:\n\nAMBIENTE:\n\nDIMENSÕES ENCONTRADAS:\n- largura:\n- altura:\n- profundidade:\n- outras cotas:\n\nMÓDULOS:\n\nDIVISÓRIAS:\n\nPRATELEIRAS:\n\nNICHOS:\n\nPORTAS:\n\nGAVETAS:\n\nPAINÉIS:\n\nOUTROS COMPONENTES:\n\nTEXTOS E COTAS DO DESENHO:\n\nGEOMETRIA E PROPORÇÕES VISUAIS:\n\nMATERIAIS E CORES OBSERVADOS:\n\nELEMENTOS DO AMBIENTE:\n\nCONFLITOS OU INCERTEZAS:\n\nREGRAS QUE O GERADOR DE IMAGEM DEVE PRESERVAR:\n\nPEDIDO DO USUÁRIO:\n{{ $json.pedido }}\n\nOCR EXTRAÍDO:\n{{ $json.ocr_text }}\n\nA resposta deve ser extremamente detalhada e técnica.\nNão faça uma descrição genérica.\nNão trate o pedido do usuário como fonte de medidas.\nA especificação técnica deverá controlar a geração da imagem posteriormente.",
+        "inputType": "base64",
+        "options": {
+          "detail": "high",
+          "maxTokens": 6000
+        }
+      },
+      "id": "770f208c-82ac-47ea-9060-26d0fd0d26fb",
+      "name": "VISION - Leitura Técnica + OCR",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        8640,
+        16
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "LRwpsZ9r6pdmM4NI",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function extract(value) {\n  if (!value) return '';\n\n  if (typeof value === 'string') return value.trim();\n\n  if (Array.isArray(value)) {\n    for (const v of value) {\n      const x = extract(v);\n      if (x) return x;\n    }\n  }\n\n  if (typeof value === 'object') {\n    const keys = [\n      'content',\n      'text',\n      'output',\n      'response',\n      'message',\n      'analise_visual',\n      'analysis'\n    ];\n\n    for (const key of keys) {\n      if (value[key] !== undefined) {\n        const x = extract(value[key]);\n        if (x) return x;\n      }\n    }\n  }\n\n  return '';\n}\n\nconst analise = extract($json);\nconst contexto = $node['Preparar Resultado OCR'].json;\nconst binary = $node['Preparar Resultado OCR'].binary;\n\nif (!analise) {\n  throw new Error('Vision não retornou uma especificação técnica utilizável.');\n}\n\nif (!binary?.data) {\n  throw new Error('A imagem original foi perdida antes da etapa Vision.');\n}\n\nreturn {\n  json: {\n    runId: contexto.runId,\n    timestamp: new Date().toISOString(),\n    pedido: contexto.pedido,\n    ocr_text: contexto.ocr_text || '',\n    analise_visual: analise,\n    especificacao_tecnica: analise,\n    arquivo: contexto.arquivo,\n    imagem_referencia_disponivel: true\n  },\n  binary: {\n    data: binary.data\n  }\n};"
+      },
+      "id": "8e9aa645-9ac9-48bf-bcc3-66149bef4c95",
+      "name": "Preparar Contexto Técnico",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8896,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=ESPECIFICAÇÃO TÉCNICA EXTRAÍDA DO RASCUNHO:\n{{ $json.especificacao_tecnica }}\n\nOCR ORIGINAL:\n{{ $json.ocr_text }}\n\nPEDIDO DO USUÁRIO:\n{{ $json.pedido }}",
+        "options": {
+          "systemMessage": "Você é o AGENTE DE IDENTIFICAÇÃO TÉCNICA DE MÓVEIS PLANEJADOS.\n\nSua função é interpretar uma especificação técnica extraída de um rascunho.\n\nREGRA PRINCIPAL:\nA especificação técnica do desenho é a FONTE DE VERDADE.\n\nO pedido do usuário NÃO pode substituir informações observadas no desenho.\n\nORDEM DE PRIORIDADE:\n1. Medidas e cotas claramente observadas no desenho.\n2. Informações confirmadas pelo OCR e pela imagem.\n3. Geometria visual observada.\n4. Componentes visualmente observados.\n5. Inferências técnicas.\n6. Pedido do usuário apenas como contexto complementar.\n\nNUNCA:\n- invente medidas;\n- altere medidas;\n- acrescente portas;\n- remova portas;\n- acrescente gavetas;\n- remova gavetas;\n- altere módulos;\n- altere divisórias;\n- transforme um móvel em outro;\n- use o texto do usuário para corrigir o desenho.\n\nQuando houver conflito, preserve o desenho e registre o conflito.\n\nIdentifique:\n- tipo exato do móvel;\n- ambiente provável;\n- quantidade de módulos;\n- largura/altura/profundidade informadas;\n- portas;\n- gavetas;\n- nichos;\n- prateleiras;\n- divisórias;\n- painéis;\n- vãos;\n- elementos superiores e inferiores;\n- estrutura geral.\n\nPara cada item relevante indique:\nOBSERVADO\nOCR_CONFIRMADO\nINFERIDO\nINCERTO\n\nSAÍDA:\nEntregue uma análise textual estruturada.\nNão use JSON rígido.\nNão use code fence.\n\nA próxima etapa criará um prompt de imagem e deverá obedecer à especificação técnica sem alterar a geometria."
+        }
+      },
+      "id": "9ccf8c9e-e549-41a7-8249-542ce43a18ce",
+      "name": "AGENT - Identificar Móvel",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        9184,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.05
+        }
+      },
+      "id": "6658d98d-05a9-40c3-919c-79fdface55d4",
+      "name": "OpenAI Chat Model - Identificação",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        9184,
+        320
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "LRwpsZ9r6pdmM4NI",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=IDENTIFICAÇÃO TÉCNICA DO MÓVEL:\n{{ $json.output }}\n\nESPECIFICAÇÃO ORIGINAL:\n{{ $node['Preparar Contexto Técnico'].json.especificacao_tecnica }}\n\nOCR:\n{{ $node['Preparar Contexto Técnico'].json.ocr_text }}\n\nPEDIDO DO USUÁRIO:\n{{ $node['Preparar Contexto Técnico'].json.pedido }}",
+        "options": {
+          "systemMessage": "Você é o DIRETOR DE CENA de um sistema profissional de visualização de móveis planejados.\n\nSua função é criar o PROMPT FINAL para um gerador de imagem.\n\nA imagem original será enviada junto como referência visual.\n\nREGRA ABSOLUTA:\nA especificação técnica do desenho controla a geometria da imagem.\n\nO pedido do usuário NÃO controla a geometria quando houver informação no desenho.\n\nPRIORIDADE ABSOLUTA:\n1. medidas escritas no desenho;\n2. cotas confirmadas pelo OCR + imagem;\n3. geometria observada;\n4. módulos observados;\n5. portas, gavetas, nichos e prateleiras observados;\n6. organização espacial observada;\n7. inferências técnicas;\n8. pedido do usuário para aspectos não definidos.\n\nO gerador NÃO deve interpretar livremente o texto do usuário quando o desenho já define a característica.\n\nEXEMPLO:\nSe o usuário disser 'armário com 3 portas', mas o desenho mostra claramente 4 portas, o prompt deve preservar 4 portas.\nSe o OCR encontrar '2400 mm' e a imagem confirmar a cota, use 2400 mm.\nSe o usuário disser '2,40 m', mas o desenho indicar 2,70 m, use 2,70 m.\n\nSe não houver medida, não invente medida.\nSe houver dúvida, não transforme dúvida em certeza.\n\nA imagem final deve ser uma EVOLUÇÃO VISUAL DO RASCUNHO, não uma recriação livre.\n\nPRESERVE OBRIGATORIAMENTE:\n- geometria;\n- dimensões informadas;\n- proporções relativas;\n- número de módulos;\n- posição dos módulos;\n- divisórias;\n- prateleiras;\n- nichos;\n- portas;\n- gavetas;\n- painéis;\n- vãos;\n- elementos superiores;\n- elementos inferiores;\n- elementos centrais.\n\nSOMENTE PODE CRIAR LIVREMENTE:\n- acabamento visual quando não especificado;\n- iluminação quando não especificada;\n- arquitetura neutra compatível quando não especificada;\n- materiais neutros quando não identificados;\n- decoração mínima e não conflitante.\n\nNÃO INVENTE:\n- novas portas;\n- novas gavetas;\n- novos módulos;\n- novas divisórias;\n- novas medidas;\n- novos eletrodomésticos;\n- novas janelas;\n- puxadores específicos sem evidência;\n- cores específicas sem evidência.\n\nO ambiente deve ser coerente com o móvel identificado.\n\nA câmera deve mostrar o móvel inteiro e permitir comparação direta com o rascunho.\n\nUtilize perspectiva arquitetônica realista.\n\nO PROMPT FINAL DEVE ESPECIFICAR:\n- tipo de ambiente;\n- tipo de móvel;\n- dimensões informadas;\n- composição modular;\n- posição das divisórias;\n- portas;\n- gavetas;\n- nichos;\n- prateleiras;\n- painéis;\n- profundidade visual;\n- posicionamento;\n- enquadramento;\n- câmera;\n- lente aproximada;\n- iluminação;\n- sombras;\n- materiais conhecidos;\n- cores conhecidas;\n- realismo fotográfico;\n- qualidade arquitetônica.\n\nInclua explicitamente no prompt uma instrução para que o gerador compare a imagem final com o rascunho e preserve sua geometria.\n\nNÃO gere JSON.\nNÃO explique.\nNÃO faça introdução.\nRETORNE SOMENTE O PROMPT FINAL DA IMAGEM."
+        }
+      },
+      "id": "dc4eedd6-17e2-4c08-8ae4-4d68da9f40b4",
+      "name": "AGENT - Diretor de Cena",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        9488,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.05
+        }
+      },
+      "id": "36a11a4e-e6a2-401d-9113-bae6ed27c0e0",
+      "name": "OpenAI Chat Model - Cena",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        9488,
+        320
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "LRwpsZ9r6pdmM4NI",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const output = String(\n  $json.output ??\n  $json.text ??\n  $json.response ??\n  ''\n).trim();\n\nif (!output) {\n  throw new Error('O Agente Diretor de Cena não produziu um prompt.');\n}\n\nconst contexto = $node['Preparar Contexto Técnico'].json;\nconst binary = $node['Preparar Contexto Técnico'].binary;\nconst identificacao = $node['AGENT - Identificar Móvel'].json.output || '';\n\nif (!binary?.data) {\n  throw new Error('O rascunho original não está disponível para o GPT Image.');\n}\n\nreturn {\n  json: {\n    sucesso: true,\n    etapa: 'prompt_imagem',\n    runId: contexto.runId,\n    timestamp: new Date().toISOString(),\n    pedido: contexto.pedido,\n    ocr_text: contexto.ocr_text,\n    especificacao_tecnica: contexto.especificacao_tecnica,\n    analise_visual: contexto.analise_visual,\n    identificacao_movel: identificacao,\n    image_prompt: output,\n    referencia_visual: true,\n    referencia_campo_binario: 'data'\n  },\n  binary: {\n    data: binary.data\n  }\n};"
+      },
+      "id": "7b62e207-4aad-4cfa-9a37-44c68866ca79",
+      "name": "Preparar Prompt GPT Image",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9776,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/images/edits",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-image-1"
+            },
+            {
+              "name": "prompt",
+              "value": "={{ $json.image_prompt }}"
+            },
+            {
+              "name": "size",
+              "value": "1024x1024"
+            },
+            {
+              "name": "quality",
+              "value": "high"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "image",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "fd306f38-87ac-40e3-b8a4-9edcc0a24ca9",
+      "name": "GPT Image - Transformar Rascunho",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        10048,
+        16
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "LRwpsZ9r6pdmM4NI",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const response = $json;\nconst contexto = $node['Preparar Prompt GPT Image'].json;\n\nconst result = Array.isArray(response.data) ? response.data[0] : null;\n\nif (!result) {\n  throw new Error(\n    'GPT Image não retornou data[0]. Resposta recebida: ' +\n    JSON.stringify(response)\n  );\n}\n\nif (!result.b64_json && !result.url) {\n  throw new Error('GPT Image não retornou b64_json nem URL.');\n}\n\nif (result.b64_json) {\n  return {\n    json: {\n      sucesso: true,\n      codigo: 'IMAGE_GENERATED',\n      etapa: 'imagem_gerada',\n      runId: contexto.runId,\n      timestamp: new Date().toISOString(),\n      image_url: null,\n      image_mime_type: 'image/png',\n      image_file_name: `cena-${contexto.runId}.png`,\n      image_prompt: contexto.image_prompt,\n      especificacao_tecnica: contexto.especificacao_tecnica,\n      identificacao_movel: contexto.identificacao_movel,\n      referencia_visual_utilizada: true\n    },\n    binary: {\n      data: {\n        data: result.b64_json,\n        mimeType: 'image/png',\n        fileName: `cena-${contexto.runId}.png`,\n        fileExtension: 'png'\n      }\n    }\n  };\n}\n\nreturn {\n  json: {\n    sucesso: true,\n    codigo: 'IMAGE_GENERATED_URL',\n    etapa: 'imagem_gerada',\n    runId: contexto.runId,\n    timestamp: new Date().toISOString(),\n    image_url: result.url,\n    image_mime_type: 'image/png',\n    image_file_name: null,\n    image_prompt: contexto.image_prompt,\n    especificacao_tecnica: contexto.especificacao_tecnica,\n    identificacao_movel: contexto.identificacao_movel,\n    referencia_visual_utilizada: true\n  }\n};"
+      },
+      "id": "3b3dcf28-d283-438f-bc3f-a3e5ae3e8c28",
+      "name": "Converter Resultado GPT Image",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10320,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  sucesso: Boolean($json.sucesso),\n  codigo: $json.codigo || 'IMAGE_GENERATED',\n  etapa: $json.etapa || 'imagem_gerada',\n  runId: $json.runId || null,\n  timestamp: $json.timestamp || new Date().toISOString(),\n  image_url: $json.image_url || null,\n  imagem_base64: $binary?.data?.data || null,\n  image_mime_type: $json.image_mime_type || $binary?.data?.mimeType || 'image/png',\n  image_file_name: $json.image_file_name || $binary?.data?.fileName || null,\n  arquivo: $binary?.data ? {\n    campo: 'data',\n    nome: $binary.data.fileName || null,\n    mimeType: $binary.data.mimeType || 'image/png'\n  } : null,\n  referencia_visual_utilizada: $json.referencia_visual_utilizada !== false,\n  identificacao_movel: $json.identificacao_movel || null,\n  especificacao_tecnica: $json.especificacao_tecnica || null,\n  image_prompt: $json.image_prompt || null\n} }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "c237c0bb-11af-460a-ad0b-d27a33210465",
+      "name": "Responder - Imagem Final",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        10592,
+        16
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook - Criar Cena V2": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Upload → data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Upload → data": {
+      "main": [
+        [
+          {
+            "node": "OCR - OpenCV + Tesseract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCR - OpenCV + Tesseract": {
+      "main": [
+        [
+          {
+            "node": "Preparar Resultado OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Resultado OCR": {
+      "main": [
+        [
+          {
+            "node": "VISION - Leitura Técnica + OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VISION - Leitura Técnica + OCR": {
+      "main": [
+        [
+          {
+            "node": "Preparar Contexto Técnico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Contexto Técnico": {
+      "main": [
+        [
+          {
+            "node": "AGENT - Identificar Móvel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AGENT - Identificar Móvel": {
+      "main": [
+        [
+          {
+            "node": "AGENT - Diretor de Cena",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model - Identificação": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AGENT - Identificar Móvel",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AGENT - Diretor de Cena": {
+      "main": [
+        [
+          {
+            "node": "Preparar Prompt GPT Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model - Cena": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AGENT - Diretor de Cena",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Prompt GPT Image": {
+      "main": [
+        [
+          {
+            "node": "GPT Image - Transformar Rascunho",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT Image - Transformar Rascunho": {
+      "main": [
+        [
+          {
+            "node": "Converter Resultado GPT Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Converter Resultado GPT Image": {
+      "main": [
+        [
+          {
+            "node": "Responder - Imagem Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b4a7d5938be41597424f1e9e13dbf3a44f013a81253547440874c0e29eff664c"
+  }
+}

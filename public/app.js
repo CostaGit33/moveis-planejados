@@ -793,8 +793,30 @@ function previewDraftFile(file) {
   }
 }
 
+function renderGeneratedImage(result) {
+  const box = document.getElementById('draftGeneratedImage');
+  const image = document.getElementById('draftGeneratedImagePreview');
+  const link = document.getElementById('draftGeneratedImageLink');
+  const meta = document.getElementById('draftGeneratedImageMeta');
+  if (!box || !image || !link) return;
+
+  const source = result?.image_data_url || result?.image_url || '';
+  if (!source) {
+    image.removeAttribute('src');
+    link.removeAttribute('href');
+    box.hidden = true;
+    return;
+  }
+
+  image.src = source;
+  link.href = source;
+  if (meta) meta.textContent = result?.nome || result?.codigo || 'Retornada pelo workflow N8N';
+  box.hidden = false;
+}
+
 async function analyzeImageFiles(files) {
   const selectedFiles = files.filter(isImageFile);
+  renderGeneratedImage(null);
   if (!selectedFiles.length) throw new Error('Selecione uma imagem JPEG, PNG ou WebP.');
   if (selectedFiles.length > 2) {
     throw new Error('O workflow N8N atual aceita até duas imagens por análise. Envie as referências em lotes de até duas; nenhuma imagem extra foi descartada.');
@@ -809,7 +831,18 @@ async function analyzeImageFiles(files) {
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'Não foi possível interpretar a imagem no N8N.');
-  if (!data.draft_payload) throw new Error('A API não retornou o draft intermediário para revisão.');
+
+  if (data.image_result) {
+    draftState.payload = null;
+    draftState.analysis = data;
+    renderGeneratedImage(data.image_result);
+    const review = document.getElementById('draftReview');
+    if (review) review.hidden = true;
+    setDraftStatus('Imagem final recebida do workflow N8N e apresentada abaixo.', 'success');
+    return data;
+  }
+
+  if (!data.draft_payload) throw new Error('A API não retornou draft_payload nem imagem final.');
   draftState.payload = data.draft_payload;
   draftState.analysis = data;
   applyDraftModuleToFields(data.draft_payload, { clearMissing: true, render: false });
