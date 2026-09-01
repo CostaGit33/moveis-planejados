@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Studio de projetos de móveis planejados com visualização, peças e orçamento.">
-  <title>Studio Móveis Planejados</title>
+  <meta name="description" content="Studio de visualização de móveis planejados por IA a partir de rascunhos, com leitura técnica e cena 3D.">
+  <meta name="theme-color" content="#06080d">
+  <title>Studio Móveis · AI Visualizer</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -13,9 +14,9 @@
       <div class="brand-lockup">
         <div class="brand-mark" aria-hidden="true">MP</div>
         <div>
-          <p class="eyebrow">STUDIO DE PROJETOS</p>
+          <p class="eyebrow">AI FURNITURE STUDIO</p>
           <h1>Móveis Planejados</h1>
-          <p class="topbar-subtitle">Do pedido à lista de corte, com medidas e orçamento em um só lugar.</p>
+          <p class="topbar-subtitle">Transforme um rascunho em uma proposta visual técnica, sem perder a geometria original.</p>
         </div>
       </div>
       <div class="topbar-status">
@@ -28,38 +29,38 @@
       <section class="panel input-panel">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">01 · ENTRADA</p>
-            <h2>Descreva o projeto</h2>
+            <p class="eyebrow">01 · BRIEFING</p>
+            <h2>Crie a partir do rascunho</h2>
           </div>
-          <span class="step-badge">Pedido</span>
+          <span class="step-badge">IA</span>
         </div>
 
         <label>
-          Solicitação do cliente
-          <textarea id="pedido" rows="5">Quero uma cozinha em L de 3,20 m x 2,80 m com pia, quatro gavetas e acabamento MDF areia.</textarea>
+          O que você quer criar?
+          <textarea id="pedido" rows="5">Descreva o móvel, o ambiente e o acabamento desejado.</textarea>
         </label>
 
         <div class="draft-box">
           <div class="subsection-heading">
-            <h3>Rascunho de módulo</h3>
-            <span>Proposta revisável</span>
+            <h3>Referência visual</h3>
+            <span>Imagem principal</span>
           </div>
           <label>
-            Imagem ou JSON do rascunho
+            Envie seu rascunho
             <input id="draftFile" type="file" accept=".json,application/json,image/jpeg,image/png,image/webp" multiple>
           </label>
           <div class="button-row">
-            <button id="analyzeDraft" class="button button-secondary" type="button">Analisar rascunho</button>
-            <button id="loadDraftFixture" class="button button-ghost" type="button">Carregar exemplo</button>
+            <button id="analyzeDraft" class="button button-primary" type="button">Analisar e gerar</button>
+            <button id="loadDraftFixture" class="button button-ghost" type="button">Usar exemplo</button>
           </div>
-          <p class="helper-text" id="draftStatus">Uma ou duas imagens serão enviadas ao workflow N8N para gerar evidências revisáveis. As medidas e componentes precisam ser confirmados antes da conversão.</p>
+          <p class="helper-text" id="draftStatus">O rascunho será interpretado pelo fluxo de visão. A geometria observada continua sendo a referência estrutural principal.</p>
           <div id="draftImagePreview" class="draft-image-preview" hidden>
             <img id="draftPreview" alt="Pré-visualização do rascunho enviado">
           </div>
           <div id="draftGeneratedImage" class="draft-generated-image" hidden>
             <div class="subsection-heading">
-              <h4>Imagem final gerada</h4>
-              <span id="draftGeneratedImageMeta">Retornada pelo workflow N8N</span>
+              <h4>Resultado visual</h4>
+              <span id="draftGeneratedImageMeta">Retornado pelo workflow N8N</span>
             </div>
             <a id="draftGeneratedImageLink" target="_blank" rel="noopener noreferrer">
               <img id="draftGeneratedImagePreview" alt="Imagem final gerada a partir do rascunho">
@@ -82,7 +83,7 @@
               <button id="applyDraftEvidence" class="button button-secondary" type="button">Aplicar componentes revisados</button>
             </div>
             <div id="draftVisionInfo" class="draft-vision-info" hidden>
-              <strong>Leitura da imagem</strong>
+              <strong>Leitura técnica</strong>
               <div class="draft-identification">
                 <div><span>Identificação</span><b id="draftIdentificationLabel">Não identificada</b></div>
                 <div><span>Tipo</span><b id="draftIdentificationType">unknown</b></div>
@@ -113,22 +114,10 @@
           <span>Medidas em milímetros</span>
         </div>
         <div class="grid two">
-          <label>
-            Largura
-            <input id="ambienteLargura" type="number" min="1000" step="1" value="3200">
-          </label>
-          <label>
-            Profundidade
-            <input id="ambienteProfundidade" type="number" min="600" step="1" value="2800">
-          </label>
-          <label>
-            Pé-direito
-            <input id="peDireito" type="number" min="1800" step="1" value="2700">
-          </label>
-          <label>
-            Parede
-            <input id="paredeEspessura" type="number" min="60" step="1" value="120">
-          </label>
+          <label>Largura<input id="ambienteLargura" type="number" min="1000" step="1" value="3200"></label>
+          <label>Profundidade<input id="ambienteProfundidade" type="number" min="600" step="1" value="2800"></label>
+          <label>Pé-direito<input id="peDireito" type="number" min="1800" step="1" value="2700"></label>
+          <label>Parede<input id="paredeEspessura" type="number" min="60" step="1" value="120"></label>
         </div>
 
         <div class="subsection-heading">
@@ -136,196 +125,53 @@
           <span>Dimensões e composição</span>
         </div>
         <div class="grid two">
-          <label>
-            Tipo
-            <select id="moduloTipo">
-              <option value="armario_inferior">Armário inferior</option>
-              <option value="balcao_pia">Balcão para pia</option>
-              <option value="gaveteiro">Gaveteiro</option>
-              <option value="aereo">Armário aéreo</option>
-              <option value="torre_quente">Torre quente</option>
-              <option value="armario_aberto">Armário aberto</option>
-              <option value="estante">Estante</option>
-              <option value="torre_closet">Torre de closet</option>
-              <option value="armario_com_portas">Armário com portas</option>
-            </select>
-          </label>
-          <label>
-            Material
-            <select id="material">
-              <option value="mdf_areia">MDF Areia</option>
-              <option value="mdf_cinza">MDF Cinza</option>
-              <option value="mdf_carvalho">MDF Carvalho</option>
-            </select>
-          </label>
-          <label>
-            Composição
-            <select id="composicaoLayout">
-              <option value="single">Módulo único</option>
-              <option value="u">Closet em U · módulos independentes</option>
-            </select>
-          </label>
-          <label>
-            X
-            <input id="moduloX" type="number" min="0" step="1" value="300">
-          </label>
-          <label>
-            Y
-            <input id="moduloY" type="number" min="0" step="1" value="120">
-          </label>
-          <label>
-            Largura
-            <input id="moduloLargura" type="number" min="200" step="1" value="600">
-          </label>
-          <label>
-            Profundidade
-            <input id="moduloProfundidade" type="number" min="200" step="1" value="600">
-          </label>
-          <label>
-            Altura
-            <input id="moduloAltura" type="number" min="200" step="1" value="720">
-          </label>
-          <label>
-            Chapa
-            <input id="chapa" type="number" min="6" step="1" value="18">
-          </label>
-          <label>
-            Portas
-            <input id="moduloPortas" type="number" min="0" max="100" step="1" value="0">
-          </label>
-          <label>
-            Gavetas
-            <input id="moduloGavetas" type="number" min="0" max="100" step="1" value="4">
-          </label>
-          <label>
-            Prateleiras
-            <input id="moduloPrateleiras" type="number" min="0" max="100" step="1" value="0">
-          </label>
-          <label>
-            Divisórias verticais
-            <input id="divisoriasVerticais" type="number" min="0" max="100" step="1" value="0">
-          </label>
-          <label>
-            Cabideiros
-            <input id="cabideiros" type="number" min="0" max="20" step="1" value="0">
-          </label>
+          <label>Tipo<select id="moduloTipo">
+            <option value="armario_inferior">Armário inferior</option><option value="balcao_pia">Balcão para pia</option><option value="gaveteiro">Gaveteiro</option><option value="aereo">Armário aéreo</option><option value="torre_quente">Torre quente</option><option value="armario_aberto">Armário aberto</option><option value="estante">Estante</option><option value="torre_closet">Torre de closet</option><option value="armario_com_portas">Armário com portas</option>
+          </select></label>
+          <label>Material<select id="material"><option value="mdf_areia">MDF Areia</option><option value="mdf_cinza">MDF Cinza</option><option value="mdf_carvalho">MDF Carvalho</option></select></label>
+          <label>Composição<select id="composicaoLayout"><option value="single">Módulo único</option><option value="u">Closet em U · módulos independentes</option></select></label>
+          <label>X<input id="moduloX" type="number" min="0" step="1" value="300"></label>
+          <label>Y<input id="moduloY" type="number" min="0" step="1" value="120"></label>
+          <label>Largura<input id="moduloLargura" type="number" min="200" step="1" value="600"></label>
+          <label>Profundidade<input id="moduloProfundidade" type="number" min="200" step="1" value="600"></label>
+          <label>Altura<input id="moduloAltura" type="number" min="200" step="1" value="720"></label>
+          <label>Chapa<input id="chapa" type="number" min="6" step="1" value="18"></label>
+          <label>Portas<input id="moduloPortas" type="number" min="0" max="100" step="1" value="0"></label>
+          <label>Gavetas<input id="moduloGavetas" type="number" min="0" max="100" step="1" value="4"></label>
+          <label>Prateleiras<input id="moduloPrateleiras" type="number" min="0" max="100" step="1" value="0"></label>
+          <label>Divisórias verticais<input id="divisoriasVerticais" type="number" min="0" max="100" step="1" value="0"></label>
+          <label>Cabideiros<input id="cabideiros" type="number" min="0" max="20" step="1" value="0"></label>
         </div>
-        <p class="helper-text">No layout U, cada trecho deve ser um módulo independente com largura, profundidade, altura, posição e rotação confirmadas. O seletor não inventa as medidas dos dois cantos.</p>
-
+        <p class="helper-text">No layout U, cada trecho deve ser um módulo independente com largura, profundidade, altura, posição e rotação confirmadas.</p>
         <div class="action-stack">
-          <button id="generateProject" class="button button-primary" type="button">
-            <span>Gerar projeto</span><span aria-hidden="true">→</span>
-          </button>
-          <div class="button-row">
-            <button id="loadBase" class="button button-secondary" type="button">Carregar base</button>
-            <button id="simulateFlow" class="button button-ghost" type="button">Simular fluxo</button>
-            <button id="exportJson" class="button button-ghost" type="button">Exportar JSON</button>
-            <button id="exportGlb" class="button button-ghost" type="button">Exportar GLB</button>
-          </div>
+          <button id="generateProject" class="button button-primary" type="button"><span>Gerar projeto</span><span aria-hidden="true">→</span></button>
+          <div class="button-row"><button id="loadBase" class="button button-secondary" type="button">Carregar base</button><button id="simulateFlow" class="button button-ghost" type="button">Simular fluxo</button><button id="exportJson" class="button button-ghost" type="button">Exportar JSON</button><button id="exportGlb" class="button button-ghost" type="button">Exportar GLB</button></div>
         </div>
         <p class="helper-text" id="generationStatus">Edite as medidas e gere uma nova composição.</p>
       </section>
 
       <section class="panel preview-panel preview-wide">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">02 · VISUALIZAÇÃO</p>
-            <h2>Planta 2D</h2>
-          </div>
-          <span class="metric-chip" id="dimensoesResumo">3200 × 2800 mm</span>
-        </div>
+        <div class="section-heading"><div><p class="eyebrow">02 · PLANTA</p><h2>Visualização 2D</h2></div><span class="metric-chip" id="dimensoesResumo">3200 × 2800 mm</span></div>
         <canvas id="planta2d" width="900" height="500"></canvas>
       </section>
 
       <section class="panel preview-panel preview-wide">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">03 · VOLUME</p>
-            <h2>Visão 3D</h2>
-          </div>
-          <span class="metric-chip" id="hybridViewerStatus">Three.js · cena híbrida</span>
-        </div>
-        <div id="hybridViewer" class="hybrid-viewer" aria-label="Visualização 3D híbrida">
-          <div class="hybrid-viewer-empty" id="hybridViewerEmpty">Inicializando visualizador híbrido…</div>
-        </div>
+        <div class="section-heading"><div><p class="eyebrow">03 · VOLUME</p><h2>Visualização 3D</h2></div><span class="metric-chip" id="hybridViewerStatus">Three.js · cena híbrida</span></div>
+        <div id="hybridViewer" class="hybrid-viewer" aria-label="Visualização 3D híbrida"><div class="hybrid-viewer-empty" id="hybridViewerEmpty">Inicializando visualizador 3D…</div></div>
         <canvas id="visao3d" width="900" height="500" hidden aria-hidden="true"></canvas>
       </section>
 
       <section class="panel output-panel">
-        <div class="table-section">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">04 · FABRICAÇÃO</p>
-              <h2>Lista de peças</h2>
-            </div>
-            <span class="metric-chip" id="partsCount">0 grupos</span>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Peça</th>
-                  <th>Medida</th>
-                  <th>Qtd.</th>
-                  <th>Material</th>
-                </tr>
-              </thead>
-              <tbody id="pecasBody"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="summary">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">05 · COMERCIAL</p>
-              <h2>Orçamento</h2>
-            </div>
-          </div>
-          <dl>
-            <div>
-              <dt>Área MDF</dt>
-              <dd id="areaMdf">0,00 m²</dd>
-            </div>
-            <div>
-              <dt>Peças</dt>
-              <dd id="summaryPieces">0</dd>
-            </div>
-            <div class="summary-total">
-              <dt>Estimativa</dt>
-              <dd id="valorEstimado">R$ 0,00</dd>
-            </div>
-            <div>
-              <dt>Status</dt>
-              <dd id="statusProjeto">Pronto para edição</dd>
-            </div>
-          </dl>
-          <div class="summary-note">Estimativa baseada no modelo de preços configurado na aplicação.</div>
-        </div>
+        <div class="table-section"><div class="section-heading"><div><p class="eyebrow">04 · FABRICAÇÃO</p><h2>Lista de peças</h2></div><span class="metric-chip" id="partsCount">0 grupos</span></div><div class="table-wrap"><table><thead><tr><th>Peça</th><th>Medida</th><th>Qtd.</th><th>Material</th></tr></thead><tbody id="pecasBody"></tbody></table></div></div>
+        <div class="summary"><div class="section-heading"><div><p class="eyebrow">05 · COMERCIAL</p><h2>Orçamento</h2></div></div><dl><div><dt>Área MDF</dt><dd id="areaMdf">0,00 m²</dd></div><div><dt>Peças</dt><dd id="summaryPieces">0</dd></div><div class="summary-total"><dt>Estimativa</dt><dd id="valorEstimado">R$ 0,00</dd></div><div><dt>Status</dt><dd id="statusProjeto">Pronto para edição</dd></div></dl><div class="summary-note">Estimativa baseada no modelo de preços configurado na aplicação.</div></div>
       </section>
 
-      <section class="panel flow-panel">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">06 · ORQUESTRAÇÃO</p>
-            <h2>Fluxo do projeto</h2>
-          </div>
-          <span id="flowStatus" class="status-label">Conectores locais</span>
-        </div>
-        <div class="flow-grid" id="flowGrid"></div>
-        <pre id="flowPayload">{}</pre>
-      </section>
+      <section class="panel flow-panel"><div class="section-heading"><div><p class="eyebrow">06 · ORQUESTRAÇÃO</p><h2>Fluxo do projeto</h2></div><span id="flowStatus" class="status-label">Conectores locais</span></div><div class="flow-grid" id="flowGrid"></div><pre id="flowPayload">{}</pre></section>
     </main>
   </div>
 
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "/vendor/three/build/three.module.js",
-        "three/addons/": "/vendor/three/examples/jsm/"
-      }
-    }
-  </script>
+  <script type="importmap">{"imports":{"three":"/vendor/three/build/three.module.js","three/addons/":"/vendor/three/examples/jsm/"}}</script>
+  <script src="/ai-result-bridge.js"></script>
   <script src="/app.js"></script>
   <script type="module" src="/hybrid-viewer.mjs"></script>
 </body>
