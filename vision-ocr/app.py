@@ -1,4 +1,5 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, ImageOps
 import cv2
 import numpy as np
@@ -8,6 +9,7 @@ import re
 import os
 import math
 from typing import Any
+from sports import process_sports_image
 
 APP_VERSION = "3.0.0"
 MAX_IMAGE_BYTES = int(os.getenv("MAX_IMAGE_MB", "20")) * 1024 * 1024
@@ -22,6 +24,22 @@ app = FastAPI(
         "Pipeline de visão computacional para desenhos e rascunhos de móveis planejados. "
         "Combina pré-processamento, OCR, detecção geométrica e pontuação de evidências."
     ),
+)
+
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ORIGINS",
+        "https://analitysport.novaagencia.online,https://www.analitysport.novaagencia.online",
+    ).split(",")
+    if origin.strip()
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=False,
+    allow_methods=["POST", "GET", "OPTIONS"],
+    allow_headers=["*"],
 )
 
 NUMBER_RE = re.compile(
@@ -361,10 +379,12 @@ def root():
             "evidence_deduplication",
             "original_image_coordinates",
             "manual_review_gate",
+            "sports_statistics_ocr",
         ],
         "docs": "/docs",
         "health": "/health",
         "process_image": "/process-image",
+        "process_sports_image": "/process-sports-image",
     }
 
 
@@ -462,3 +482,33 @@ async def process_image(image: UploadFile = File(...)):
         raise
     except Exception as exc:
         raise HTTPException(status_code=422, detail=f"Falha ao processar imagem: {exc}")
+
+
+@app.post("/process-sports-image")
+async def process_sports_image_endpoint(image: UploadFile = File(...)):
+    """Extrai placar e estatísticas de uma captura de tela esportiva.
+
+    O campo multipart permanece `image`, igual ao endpoint de móveis, mas o
+    resultado usa rótulos esportivos e pares mandante/visitante.
+    """
+    if not image.content_type or not image.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Envie um arquivo de imagem.")
+
+    data = await image.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="Imagem vazia.")
+    if len(data) > MAX_IMAGE_BYTES:
+        raise HTTPException(status_code=413, detail=f"Imagem maior que {MAX_IMAGE_BYTES // 1024 // 1024} MB.")
+
+    try:
+        original = ImageOps.exif_transpose(Image.open(io.BytesIO(data)))
+        if original.width > MAX_DIMENSION or original.height > MAX_DIMENSION:
+            raise HTTPException(status_code=413, detail="Dimensões da imagem excedem o limite permitido.")
+        result = process_sports_image(original)
+        result["filename"] = image.filename
+        result["content_type"] = image.content_type
+        return result
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"Falha ao processar imagem esportiva: {exc}")

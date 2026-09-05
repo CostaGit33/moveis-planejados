@@ -1,6 +1,6 @@
 # Moveis Planejados Vision OCR
 
-API de visão computacional para interpretar fotos e rascunhos técnicos de móveis planejados.
+API de visão computacional para interpretar fotos e rascunhos técnicos de móveis planejados e capturas de estatísticas esportivas.
 
 ## Versão
 
@@ -41,7 +41,34 @@ Medidas validadas
 - `GET /` — informações do serviço e capacidades.
 - `GET /health` — status, OpenCV, Tesseract e idiomas.
 - `POST /process-image` — recebe `multipart/form-data` no campo `image`.
+- `POST /process-sports-image` — recebe `multipart/form-data` no campo `image` e extrai placar, equipes e pares mandante/visitante.
 - `GET /docs` — Swagger/OpenAPI automático.
+
+## Estatísticas esportivas
+
+O endpoint `/process-sports-image` usa o mesmo limite de upload e a mesma
+validação de imagem do endpoint original, mas aplica um pipeline separado. Ele
+executa OCR multivariado, identifica rótulos como `Ataques`, `Posse`,
+`Escanteios` e `Finalizações`, associa os dois valores encontrados a
+mandante/visitante e retorna evidências, confiança e validações. Posse de bola
+é validada para verificar se soma 100%; qualquer inconsistência ou ausência de
+dados exige revisão manual.
+
+Exemplo de resposta reduzida:
+
+```json
+{
+  "mode": "sports_statistics",
+  "teams": {"home": "Equipe A", "away": "Equipe B"},
+  "score": {"home": 0, "away": 0},
+  "statistics": {"attacks": [104, 113], "possession": [48, 52]},
+  "validation": {
+    "possession_sum": 100,
+    "issues": [],
+    "requires_manual_review": false
+  }
+}
+```
 
 ## Melhorias da V3
 
