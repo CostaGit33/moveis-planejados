@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { Link } from "wouter";
 import {
   Activity,
   AlertCircle,
@@ -153,7 +154,7 @@ export default function Home() {
         <div className="side-line" />
         <div className="side-tool active"><ScanLine size={19} /></div>
         <div className="side-tool"><BarChart3 size={19} /></div>
-        <div className="side-tool"><Trophy size={19} /></div>
+        <Link href="/jogadores/joao-silva" className="side-tool" aria-label="Abrir perfil do jogador"><Trophy size={19} /></Link>
         <div className="mt-auto side-tool"><CircleHelp size={19} /></div>
       </aside>
 
