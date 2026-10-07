@@ -1,0 +1,11 @@
+{
+  "name": "caderneta-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file=.env index.js",
+    "dev": "node --watch --env-file=.env index.js",
+    "db:init": "node --env-file=.env db/init.js"
+  },
+  "dependencies": { "express": "^4.19.2", "pg": "^8.12.0" }
+}

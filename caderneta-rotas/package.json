@@ -1,0 +1,12 @@
+{
+  "name": "caderneta-rotas",
+  "private": true,
+  "scripts": {
+    "setup": "npm --prefix server i && npm --prefix client i",
+    "db:init": "npm --prefix server run db:init",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build": "npm --prefix client run build",
+    "start": "npm --prefix server start"
+  }
+}
